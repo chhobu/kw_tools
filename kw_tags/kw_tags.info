@@ -1,0 +1,8 @@
+; $Id$
+name = KTags
+description = "Alternative method for multiple taxonomy terms handling"
+core = 7.x
+version = 7.x-1.x-dev
+package = Kweb Tools
+files[] = ktags.module
+dependencies[] = taxonomy

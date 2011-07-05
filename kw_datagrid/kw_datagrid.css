@@ -1,0 +1,49 @@
+@CHARSET "UTF-8";
+/* ----------------------- DATAGRID -------------------- */
+.kw-datagrid {
+  margin: 1em 0;
+  clear: both;}
+.kw-datagrid table.datagrid {
+  width: 100%;}
+.kw-datagrid .form-item-filter-select {
+  display: inline-block;}
+.kw-datagrid .form-item .filter-mode {
+  float: left;
+  margin-right: 0.5em;}
+.kw-datagrid ul.pager {
+  margin: 0.5em;}
+.kw-datagrid-item {
+  margin-top: 1em;
+  border: 1px dashed #999;
+  background-color: #eee;}
+.kw-datagrid-item .nav-content {
+  padding: 0.25em 1em;
+  overflow: hidden;}
+.kw-datagrid-item .nav-title {
+  text-align: center;
+  padding: 0 1em;
+  margin-bottom: 0.5em;}
+.kw-datagrid-item .nav-prev {
+  float: left;
+  width: 50%;}
+.kw-datagrid-item .nav-next {
+  float: right;
+  text-align: right;
+  width: 50%;}
+.kw-datagrid-item .nav-back {
+  clear: both;
+  text-align: center;}
+.kw-datagrid td.active {
+  background-color: transparent;}
+.kw-datagrid fieldset.active-filters-container {
+  border: 0px;
+  padding: 0px;}
+.kw-datagrid fieldset.active-filters-container legend {
+  padding: 0px;}
+html.js .kw-datagrid fieldset.collapsible fieldset .fieldset-legend {
+  background-image: none;
+  padding-left: inherit;}
+td .digit {
+  text-align: right;
+  padding-right: 1em;
+  white-space: nowrap;}

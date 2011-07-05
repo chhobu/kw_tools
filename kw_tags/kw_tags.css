@@ -1,0 +1,21 @@
+/* $Id$ */
+@CHARSET "UTF-8";
+.ktags-current-values ul.inline {
+  display: inline;
+  margin: 0;}
+.ktags-current-values ul.inline li {
+  padding: 0 0.2em;
+  margin: 0.2em;
+  display: inline-block;
+  background-color: #eee;
+  border: 1px dotted #999;}
+.ktags .form-item label {
+  font-weight: normal;}
+.ktags .form-item label:after {
+  content: " : ";}
+.ktags .form-label {
+  font-weight: bold;}
+.ktags li input.form-submit {
+  margin: 0;}
+.ktags .progress-disabled {
+  float: none;}

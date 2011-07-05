@@ -1,0 +1,234 @@
+<?php
+// $Id$
+
+// -------------------------------------------------
+// ---------------- HOOKS --------------------------
+// -------------------------------------------------
+
+/**
+ * Implements hook_block_info().
+ */
+function kw_tools_block_info() {
+  $blocks['kw_footer'] = array(
+    'info' => t('kw_tools footer notes'),
+    'weight' => 0,
+    'status' => 1,
+    'region' => 'footer',
+    'cache' => DRUPAL_CACHE_PER_USER
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function kw_tools_block_view($delta = '') {
+  $block = array();
+  switch ($delta) {
+    case 'kw_footer':
+      $block = array(
+        'subject' => t('Nota bene'),
+        'content' => kw_tools_display_block_kwfooter(),
+      );
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Builds the content of kw_footer block
+ */
+function kw_tools_display_block_kwfooter() {
+  global $user;
+  $output = "";
+  $separator = " | ";
+  $output .= t("Made by !link", array("!link" => l(
+    t("Krassweb Korporation"), "introducing-krassweb-korp",
+      array("attributes" => array("class" => array("commercial")))
+    )));
+  if ($user->uid == 0) {
+    $output .= $separator . t("Not connected");
+  }
+  else {
+    $output .= $separator . t("Connected as !user", array("!user" => theme("username",array("account" => $user))));
+  }
+  $time = "<span class='date'>" . format_date(REQUEST_TIME, "custom", variable_get("date_format_just_the_date", "Y-m-d")) . "</span>";
+  $hour = "<span class='time'>" . format_date(REQUEST_TIME, "custom", variable_get("date_format_just_the_time", "H:i:s")) . "</span>";
+  $output .= $separator . $time ." - ". $hour;
+  $output .= $separator . "<a href='#Header' class='top'>" . t("Back to top") . "</a>";
+  return $output;
+}
+
+/**
+ * Implements hook_date_format_types().
+ */
+function kw_tools_date_format_types() {
+  return array(
+    'just_the_date' => t('Just the date'),
+    'just_the_time' => t('Just the time')
+  );
+}
+
+/**
+ * Implements hook_date_formats().
+ */
+function kw_tools_date_formats() {
+  return array(
+    array(
+      'type' => 'just_the_date',
+      'format' => 'Y-m-d',
+      'locales' => array('en', 'en-us'),
+    ),
+    array(
+      'type' => 'just_the_date',
+      'format' => 'd/m/Y',
+      'locales' => array('fr'),
+    ),
+    array(
+      'type' => 'just_the_time',
+      'format' => 'H:i:s',
+      'locales' => array(),
+    ),
+  );
+}
+
+// -------------------------------------------------
+// ---------------- SPECIFIC FUNCTIONS -------------
+// -------------------------------------------------
+
+/**
+ * Renvoie une valeur d'un champ de type field
+ * @param unknown_type $node
+ * @param unknown_type $field
+ */
+function kw_tools_get_locale_value($node, $field, $data = NULL) {
+  $language = $node->language;
+  if (isset($node->{$field}[$language])) {
+    if (!is_null($data) && isset($node->{$field}[$language][0][$data])) {
+      return $node->{$field}[$language][0][$data];
+    }
+    return $node->{$field}[$language];
+  }
+  else if(isset($node->$field) && is_array($node->$field)) {
+    $array = current($node->$field);
+    if (!is_null($data) && isset($array[0][$data])) {
+      return $array[0][$data];
+    }
+    return $array;
+  }
+  else {
+    return NULL;
+  }
+}
+
+/**
+ * Ajoute des données sur un champ de formulaire afin de le coordonner avec un widget jquery
+ * @param unknown_type $field
+ * @param unknown_type $extra_classes
+ * @param unknown_type $params
+ * @param unknown_type $form
+ */
+function kw_tools_add_special_widget($field, $extra_classes, $params, &$form) {
+  $params_id = "kwwp-" . $field;
+  if (!is_null($params) && count($params) > 0 && !isset($form[$params_id])) {
+    $form[$params_id] = array(
+      "#type" => "hidden",
+      "#value" => json_encode($params)
+    );
+    $extra_classes[] = $params_id;
+  }
+  if (!is_null($extra_classes) && count($extra_classes) > 0) {
+    foreach ($extra_classes as $class) {
+      $form[$field]["#attributes"]["class"][] = $class;
+    }
+  }
+}
+
+/**
+ * Regroupe des champs dans un groupe de type fieldset
+ * @param unknown_type $name
+ * @param unknown_type $title
+ * @param unknown_type $fields
+ * @param unknown_type $form
+ * @param unknown_type $options
+ */
+function kw_tools_create_fieldset($name, $title, $fields, &$form, $options = array()) {
+  $form[$name] = array_merge($options, array(
+    "#type" => "fieldset",
+    "#weight" => isset($form[current($fields)]["#weight"]) ? $form[current($fields)]["#weight"] : 0,
+    "#title" => $title
+  ));
+  foreach($fields as $value) {
+    $form[$name][$value] = $form[$value];
+    $form[$value] = array("#language" => $form["language"]["#value"]);
+  }
+}
+
+/**
+ * Renvoie un nombre formaté
+ * @param mixed $input, la chaîne à formater 
+ * @param array $options, peut contenir les options precision, decimal, thousands, suffix, prefix
+ */
+function kw_tools_number_format($input, $options = array()) {
+  if (!is_numeric($input)) {
+    return $input;
+  }
+  $precision = 0;
+  $decimal = ",";
+  $thousands = " ";
+  $suffix = "";
+  $prefix = "";
+  if (isset($options["precision"])) {
+    $precision = $options["precision"];
+  }
+  if (isset($options["decimal"])) {
+    $decimal = $options["decimal"];
+  }
+  if (isset($options["thousands"])) {
+    $thousands = $options["thousands"];
+  }
+  if (isset($options["suffix"])) {
+    $suffix = $options["suffix"];
+  }
+  if (isset($options["prefix"])) {
+    $prefix = $options["prefix"];
+  }
+  return $prefix.number_format($input, $precision, $decimal, $thousands).$suffix;
+}
+
+/**
+ * Renvoie un contenu différent si une variable est nulle (ou vide) ou non nulle
+ * @param unknown_type $value
+ * @param unknown_type $null
+ * @param unknown_type $non_null
+ */
+function kw_tools_null_dispatcher($value, $null, $non_null) {
+  if (is_null($value) || $value == "") {
+    return $null;
+  }
+  else {
+    return $non_null;
+  }
+}
+
+// -------------------------------------------------
+// ---------------- DEBUG FUNCTIONS ----------------
+// -------------------------------------------------
+
+/**
+ * Affiche de façon élégante la valeur d'une variable
+ * @param mixed $var : la variable à analyser
+ * @param boolean $die : si TRUE, le script s'arrête automatiquement
+ * @param boolean $alert : si TRUE, le contenu est affiché sous forme d'une alerte javascript
+ */
+function __debug($var, $die = TRUE, $alert = FALSE) {
+  if ($alert) {
+    echo "<script type='text/javascript'>alert(print_r($var, TRUE))</script>";
+  }
+  else {
+    echo "<pre>" . print_r($var, TRUE) . "</pre>";
+  }
+  if ($die) {
+    die();
+  }
+}

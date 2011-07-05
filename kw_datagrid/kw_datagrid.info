@@ -1,0 +1,9 @@
+; $Id$
+name = KDatagrid
+description = "A custom datagrid system to display data in tables"
+core = 7.x
+version = 7.x-0.x-dev
+package = Kweb Tools
+files[] = kw_datagrid.inc
+files[] = kw_datagrid_theme.inc
+files[] = kw_datagrid.module

@@ -1,0 +1,7 @@
+; $Id$
+name = KTools
+description = "Some custom helper functions for homemade modules..."
+core = 7.x
+version = 7.x-0.x-dev
+package = Kweb Tools
+files[] = kw_tools.module

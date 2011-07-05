@@ -1,0 +1,269 @@
+<?php
+// $Id$
+
+/**
+ * Implements hook_theme
+ */
+function ktags_theme($existing, $type, $theme, $path) {
+  return array(
+    'ktags_widget' => array(
+      'render element' => 'form'
+    )
+  );
+}
+
+/**
+ * Implements hook_field_widget_info
+ */
+function ktags_field_widget_info() {
+  return array(
+    'ktags' => array(
+      'label' => t('Active tags'),
+      'field types' => array('taxonomy_term_reference'),
+      'settings' => array(
+        'size' => 30,
+        'autocomplete_path' => 'taxonomy/autocomplete',
+      ),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form
+ */
+function ktags_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $tags = array();
+  $tag_names = array();
+  if (isset($form_state["ktags_currents"]) 
+    && isset($form_state["ktags_currents"][$field['field_name']]) 
+    && is_array($form_state["ktags_currents"][$field['field_name']])) {
+    foreach ($form_state["ktags_currents"][$field['field_name']] as $key => $tid) {
+      if (is_numeric($tid)) {
+        $tag = taxonomy_term_load($tid);
+        $tag_names[] = $tag->name;
+        $tags[] = $tag;
+      }
+      else {
+        $tag_names[] = $tid["name"];
+        $tags[] = $tid;
+      }
+    }
+  }
+  else {
+    foreach ($items as $item) {
+      $tag = isset($item['taxonomy_term']) ? $item['taxonomy_term'] : taxonomy_term_load($item['tid']);
+      $tag_names[] = $tag->name;
+      $tags[] = $tag;
+      $form_state["ktags_currents"][$field['field_name']][$tag->tid] = $tag->tid;
+    }
+  }
+  array_multisort($tag_names, $tags);
+  $current_tags = array();
+  foreach ($tags as $tag_key => $tag) {
+    if (is_array($tag)) {
+      $tag_id = !is_numeric($tag["tid"]) ? $tag["tid"]."-".md5($tag["name"]) : $tag["tid"];
+    }
+    else {
+      $tag_id = $tag->tid;
+    }
+    $element["currents"][$tag_id] = ktags_add_term($tag, $field['field_name']);
+  }
+  // Edit element array
+  $new_instance = ktags_field_widget_info();
+  $element += array(
+    "add" => array(
+      '#type' => 'textfield',
+      '#autocomplete_path' => $new_instance['ktags']['settings']['autocomplete_path'] . '/' . $field['field_name'],
+      '#size' => $new_instance['ktags']['settings']['size'],
+      '#maxlength' => 255,
+      '#field_suffix' => "#ADD",
+      '#title' => t("Add new value"),
+    ),
+    "add_button" => array(
+      '#type' => 'submit',
+      '#value' => t('Add'),
+      '#limit_validation_errors' => array(),
+      '#submit' => array("ktags_widget_add_submit"),
+      '#name' => $field['field_name'] . "-add",
+      '#ajax' => array(
+        'wrapper' => 'ktags-' . str_replace("_", "-", $field['field_name']),
+        'callback' => 'ktags_widget_add_callback'
+      )
+    ),
+    '#theme' => "ktags_widget",
+    '#prefix' => '<div class="ktags" id="ktags-' . str_replace("_", "-", $field['field_name']) . '">',
+    '#suffix' => '</div>',
+    '#element_validate' => array('ktags_validate')
+  );
+  if (isset($element["#description"])) {
+    $element["add"]["#description"] = $element["#description"];
+    unset($element["#description"]);
+  }
+  if (isset($form_state["message"]) && isset($form_state["message"][$field["field_name"]])) {
+    $element["message"] = array(
+      "#markup" => $form_state["message"][$field["field_name"]]
+    );
+  }
+  $form['#attached']['css'] = array(
+    drupal_get_path('module', 'ktags') . '/ktags.css');
+  return $element;
+}
+
+/**
+ * Adds a term remove widget in form
+ */
+function ktags_add_term($tag, $field_name) {
+  $tag_name = is_array($tag) ? $tag["name"] : $tag->name;
+  return array(
+    "#type" => "image_button",
+    "#src" => drupal_get_path("module", "kw_tags") . "/images/delete.png",
+    "#limit_validation_errors" => array(),
+    "#attributes" => array(
+      "title" => t("Remove @term from this list", array("@term" => $tag_name)),
+      "alt" => t("Remove @term from this list", array("@term" => $tag_name))
+    ),
+    "#submit" => array("ktags_widget_remove_submit"),
+    "#prefix" => $tag_name . " ",
+    "#ajax" => array(
+      "wrapper" => "ktags-" . str_replace("_", "-", $field_name),
+      "callback" => "ktags_widget_remove_callback"
+    )
+  );
+}
+
+/**
+ * Theme function for active tags form widget
+ */
+function theme_ktags_widget($variables) {
+  $form = $variables["form"];
+  $output = "<div class='form-item-title form-label'>" . $form["#title"]
+     . (isset($form["#required"]) && $form["#required"] ? " " . theme_form_required_marker($form) : "")
+     . "</div>";
+  if (isset($form["message"])) {
+    $output .= drupal_render($form["message"]);
+  }
+  if (isset($form["currents"]) && is_array($form["currents"])) {
+    $output .= "<div class='ktags-current-values'>"
+       . (count($form["currents"]) > 1 ? t("Current values :") : t("Current value :"))
+       . " <ul class='inline'>";
+    foreach (element_children($form["currents"]) as $current) {
+      $output .= "<li>" . drupal_render($form["currents"][$current]) . "</li>";
+    }
+    $output .= "</ul></div>";
+  }
+  $output .= str_replace("#ADD", drupal_render($form["add_button"]), drupal_render($form["add"]));
+  $output .= drupal_render($form["values"]);
+  return $output;
+}
+
+/**
+ * Callback function triggered when adding terms
+ */
+function ktags_widget_add_submit($form, &$form_state) {
+  $clicked_button = $form_state["clicked_button"];
+  $field_name = substr($clicked_button["#name"], 0, -4);
+  $form_state["message"][$field_name] = "<div class='messages warning'>" . t("Changes not saved until full validation of this form.") . "</div>";
+  if (isset($form_state["ktags_values"][$field_name])) {
+    $inputs = current($form_state["ktags_values"][$field_name]);
+    if (is_array($inputs) && count($inputs) > 0) {
+      foreach ($inputs as $key => $data) {
+        if (isset($data["tid"])) {
+          $term_identifyer = $data["tid"] == "autocreate" ? $data["tid"]."-".md5($data["name"]) : $data["tid"];
+          if (!isset($form[$field_name]["currents"]) || !isset($form[$field_name]["currents"][$term_identifyer])) {
+            $form_state["ktags_currents"][$field_name][$term_identifyer] = $data;
+          }
+        }
+      }
+    }
+  }
+  unset($form_state["ktags_values"]);
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Callback function triggered when adding terms / AJAX enabled
+ */
+function ktags_widget_add_callback($form, $form_state) {
+  $clicked_button = $form_state["clicked_button"];
+  $field_name = substr($clicked_button["#name"], 0, -4);
+  return $form[$field_name];
+}
+
+/**
+ * Callback function triggered when removing terms
+ */
+function ktags_widget_remove_submit($form, &$form_state) {
+  $clicked_button = $form_state["clicked_button"];
+  $field_name = substr($clicked_button["#name"], 0, strpos($clicked_button["#name"], "["));
+  $form_state["message"][$field_name] = "<div class='messages warning'>" . t("Changes not saved until full validation of this form.") . "</div>";
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Callback function triggered when removing terms / AJAX enabled
+ */
+function ktags_widget_remove_callback($form, $form_state) {
+  $clicked_button = $form_state["clicked_button"];
+  $field_name = substr($clicked_button["#name"], 0, strpos($clicked_button["#name"], "["));
+  return $form[$field_name];
+}
+
+/**
+ * Callback function trigerred when validating active tag widget
+ */
+function ktags_validate($element, &$form_state) {
+  $inputs = &$form_state["input"];
+  if (isset($inputs[$element["#field_name"]])) {
+    foreach ($inputs[$element["#field_name"]] as $lang => $value) {
+      if (is_array($value)) {
+        $removed = FALSE;
+        $tags = array();
+        if (isset($value["currents"]) && is_array($value["currents"])) {
+          $clicked_button = $form_state["clicked_button"]["#name"];
+          $clicked_button = str_replace("]", "", $clicked_button);
+          $clicked_elements = explode("[", $clicked_button);
+          $clicked_dimensions = count($clicked_elements);
+          foreach ($value["currents"] as $tid => $trigerred) {
+            if ($clicked_dimensions > 1
+              && $clicked_elements[$clicked_dimensions-1] == $tid
+              && $clicked_elements[$clicked_dimensions-2] == "currents") {
+              $removed = TRUE;
+              if (isset($form_state["ktags_currents"][$element["#field_name"]][$tid])) {
+                unset($form_state["ktags_currents"][$element["#field_name"]][$tid]);
+              }
+            }
+            else if (is_numeric($tid)) {
+              $tags[$tid] = taxonomy_term_load($tid);
+            }
+            else {
+              $tags[$tid] = (object)$form_state["ktags_currents"][$element["#field_name"]][$tid];
+            }
+          }
+        }
+        $element["#value"] = NULL;
+        if (!$removed) {
+          if (trim($value["add"]) != "") {
+            $element["#value"] = $value["add"];
+            unset($inputs[$element["#field_name"]][$lang]["add"]);
+          }
+        }
+        if (count($tags)>0) {
+          if ($element["#value"] != "") {
+            $element["#value"] .= "," . taxonomy_implode_tags($tags);
+          }
+          else {
+            $element["#value"] = taxonomy_implode_tags($tags);
+          }
+        }
+      }
+    }
+  }
+  taxonomy_autocomplete_validate($element, $form_state);
+  if (count($element["#value"]) == 0 && $element["#required"]) {
+    form_set_error($element["#field_name"], t("!name field is required .", array('!name' => $element["#title"])));
+  }
+  $form_state["ktags_values"][$element["#field_name"]] = $form_state["values"][$element["#field_name"]];
+}

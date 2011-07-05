@@ -1,0 +1,70 @@
+# $Id$
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  active_tags.module: n/a
+#  active_tags.info: n/a
+#  active_tags.js,v 1.1.2.30 2010/05/10 14:38:25 dragonwize
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2010-07-06 18:14+0200\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: active_tags.module:19 active_tags.info:0
+msgid "Active tags"
+msgstr ""
+
+#: active_tags.module:51;52
+msgid "Remove @term from this list"
+msgstr ""
+
+#: active_tags.module:71
+msgid "Add new value"
+msgstr ""
+
+#: active_tags.module:75 active_tags.js:0
+msgid "Add"
+msgstr ""
+
+#: active_tags.module:119
+msgid "Current values :"
+msgstr ""
+
+#: active_tags.module:119
+msgid "Current value :"
+msgstr ""
+
+#: active_tags.module:138;159
+msgid "Changes not saved until full validation of this form."
+msgstr ""
+
+#: active_tags.module:226
+msgid "!name field is required."
+msgstr ""
+
+#: active_tags.info:0
+msgid "Alternative method for multiple taxonomy terms handling"
+msgstr ""
+
+#: active_tags.info:0
+msgid "User interface"
+msgstr ""
+
+#: active_tags.js:0
+msgid "A comma-separated list of terms describing this content. Example: funny, bungee jumping, \"Company, Inc.\"."
+msgstr ""
+
+#: active_tags.js:0
+msgid "Enter one(1) term at a time. A comma will be included in the term and will NOT seperate terms."
+msgstr ""
+
