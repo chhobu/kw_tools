@@ -1,5 +1,8 @@
 /* $Id$ */
 @CHARSET "UTF-8";
+.form-wrapper .ktags {
+  border: 1px solid #ccc;
+  padding: 0 1em;}
 .ktags-current-values ul.inline {
   display: inline;
   margin: 0;}
@@ -14,7 +17,9 @@
 .ktags .form-item label:after {
   content: " : ";}
 .ktags .form-label {
-  font-weight: bold;}
+  font-weight: bold;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 0.5em;}
 .ktags li input.form-submit {
   margin: 0;}
 .ktags .progress-disabled {

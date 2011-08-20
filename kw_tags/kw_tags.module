@@ -4,9 +4,9 @@
 /**
  * Implements hook_theme
  */
-function ktags_theme($existing, $type, $theme, $path) {
+function kw_tags_theme($existing, $type, $theme, $path) {
   return array(
-    'ktags_widget' => array(
+    'kw_tags_widget' => array(
       'render element' => 'form'
     )
   );
@@ -15,7 +15,7 @@ function ktags_theme($existing, $type, $theme, $path) {
 /**
  * Implements hook_field_widget_info
  */
-function ktags_field_widget_info() {
+function kw_tags_field_widget_info() {
   return array(
     'ktags' => array(
       'label' => t('Active tags'),
@@ -34,7 +34,7 @@ function ktags_field_widget_info() {
 /**
  * Implements hook_field_widget_form
  */
-function ktags_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+function kw_tags_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $tags = array();
   $tag_names = array();
   if (isset($form_state["ktags_currents"]) 
@@ -69,10 +69,10 @@ function ktags_field_widget_form(&$form, &$form_state, $field, $instance, $langc
     else {
       $tag_id = $tag->tid;
     }
-    $element["currents"][$tag_id] = ktags_add_term($tag, $field['field_name']);
+    $element["currents"][$tag_id] = kw_tags_add_term($tag, $field['field_name']);
   }
   // Edit element array
-  $new_instance = ktags_field_widget_info();
+  $new_instance = kw_tags_field_widget_info();
   $element += array(
     "add" => array(
       '#type' => 'textfield',
@@ -86,17 +86,17 @@ function ktags_field_widget_form(&$form, &$form_state, $field, $instance, $langc
       '#type' => 'submit',
       '#value' => t('Add'),
       '#limit_validation_errors' => array(),
-      '#submit' => array("ktags_widget_add_submit"),
+      '#submit' => array("kw_tags_widget_add_submit"),
       '#name' => $field['field_name'] . "-add",
       '#ajax' => array(
         'wrapper' => 'ktags-' . str_replace("_", "-", $field['field_name']),
-        'callback' => 'ktags_widget_add_callback'
+        'callback' => 'kw_tags_widget_add_callback'
       )
     ),
-    '#theme' => "ktags_widget",
+    '#theme' => "kw_tags_widget",
     '#prefix' => '<div class="ktags" id="ktags-' . str_replace("_", "-", $field['field_name']) . '">',
     '#suffix' => '</div>',
-    '#element_validate' => array('ktags_validate')
+    '#element_validate' => array('kw_tags_validate')
   );
   if (isset($element["#description"])) {
     $element["add"]["#description"] = $element["#description"];
@@ -108,14 +108,14 @@ function ktags_field_widget_form(&$form, &$form_state, $field, $instance, $langc
     );
   }
   $form['#attached']['css'] = array(
-    drupal_get_path('module', 'ktags') . '/ktags.css');
+    drupal_get_path('module', 'kw_tags') . '/kw_tags.css');
   return $element;
 }
 
 /**
  * Adds a term remove widget in form
  */
-function ktags_add_term($tag, $field_name) {
+function kw_tags_add_term($tag, $field_name) {
   $tag_name = is_array($tag) ? $tag["name"] : $tag->name;
   return array(
     "#type" => "image_button",
@@ -125,11 +125,11 @@ function ktags_add_term($tag, $field_name) {
       "title" => t("Remove @term from this list", array("@term" => $tag_name)),
       "alt" => t("Remove @term from this list", array("@term" => $tag_name))
     ),
-    "#submit" => array("ktags_widget_remove_submit"),
+    "#submit" => array("kw_tags_widget_remove_submit"),
     "#prefix" => $tag_name . " ",
     "#ajax" => array(
       "wrapper" => "ktags-" . str_replace("_", "-", $field_name),
-      "callback" => "ktags_widget_remove_callback"
+      "callback" => "kw_tags_widget_remove_callback"
     )
   );
 }
@@ -137,7 +137,7 @@ function ktags_add_term($tag, $field_name) {
 /**
  * Theme function for active tags form widget
  */
-function theme_ktags_widget($variables) {
+function theme_kw_tags_widget($variables) {
   $form = $variables["form"];
   $output = "<div class='form-item-title form-label'>" . $form["#title"]
      . (isset($form["#required"]) && $form["#required"] ? " " . theme_form_required_marker($form) : "")
@@ -162,7 +162,7 @@ function theme_ktags_widget($variables) {
 /**
  * Callback function triggered when adding terms
  */
-function ktags_widget_add_submit($form, &$form_state) {
+function kw_tags_widget_add_submit($form, &$form_state) {
   $clicked_button = $form_state["clicked_button"];
   $field_name = substr($clicked_button["#name"], 0, -4);
   $form_state["message"][$field_name] = "<div class='messages warning'>" . t("Changes not saved until full validation of this form.") . "</div>";
@@ -186,7 +186,7 @@ function ktags_widget_add_submit($form, &$form_state) {
 /**
  * Callback function triggered when adding terms / AJAX enabled
  */
-function ktags_widget_add_callback($form, $form_state) {
+function kw_tags_widget_add_callback($form, $form_state) {
   $clicked_button = $form_state["clicked_button"];
   $field_name = substr($clicked_button["#name"], 0, -4);
   return $form[$field_name];
@@ -195,7 +195,7 @@ function ktags_widget_add_callback($form, $form_state) {
 /**
  * Callback function triggered when removing terms
  */
-function ktags_widget_remove_submit($form, &$form_state) {
+function kw_tags_widget_remove_submit($form, &$form_state) {
   $clicked_button = $form_state["clicked_button"];
   $field_name = substr($clicked_button["#name"], 0, strpos($clicked_button["#name"], "["));
   $form_state["message"][$field_name] = "<div class='messages warning'>" . t("Changes not saved until full validation of this form.") . "</div>";
@@ -205,7 +205,7 @@ function ktags_widget_remove_submit($form, &$form_state) {
 /**
  * Callback function triggered when removing terms / AJAX enabled
  */
-function ktags_widget_remove_callback($form, $form_state) {
+function kw_tags_widget_remove_callback($form, $form_state) {
   $clicked_button = $form_state["clicked_button"];
   $field_name = substr($clicked_button["#name"], 0, strpos($clicked_button["#name"], "["));
   return $form[$field_name];
@@ -214,7 +214,7 @@ function ktags_widget_remove_callback($form, $form_state) {
 /**
  * Callback function trigerred when validating active tag widget
  */
-function ktags_validate($element, &$form_state) {
+function kw_tags_validate($element, &$form_state) {
   $inputs = &$form_state["input"];
   if (isset($inputs[$element["#field_name"]])) {
     foreach ($inputs[$element["#field_name"]] as $lang => $value) {

@@ -6,6 +6,20 @@
 // -------------------------------------------------
 
 /**
+ * Inmplements hook_menu().
+ */
+function kw_tools_menu() {
+  $items = array();
+  $items["kw/help"] = array(
+    'title' => t('Kweb development help page'),
+    'page callback' =>  'kw_tools_help_page',
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_CALLBACK
+  );
+  return $items;
+}
+
+/**
  * Implements hook_block_info().
  */
 function kw_tools_block_info() {
@@ -122,13 +136,13 @@ function kw_tools_get_locale_value($node, $field, $data = NULL) {
 }
 
 /**
- * Ajoute des données sur un champ de formulaire afin de le coordonner avec un widget jquery
+ * Ajoute des données sur un champ de formulaire afin de le coordonner avec un default_value jquery
  * @param unknown_type $field
  * @param unknown_type $extra_classes
  * @param unknown_type $params
  * @param unknown_type $form
  */
-function kw_tools_add_special_widget($field, $extra_classes, $params, &$form) {
+function kw_tools_add_special_default_value($field, $extra_classes, $params, &$form) {
   $params_id = "kwwp-" . $field;
   if (!is_null($params) && count($params) > 0 && !isset($form[$params_id])) {
     $form[$params_id] = array(
@@ -208,6 +222,133 @@ function kw_tools_null_dispatcher($value, $null, $non_null) {
   }
   else {
     return $non_null;
+  }
+}
+
+/**
+ * Affiche une page récapitulant certains points utiles à la programmation...
+ * Enter description here ...
+ */
+function kw_tools_help_page() {
+  $fields = field_info_field_types();
+  $default_values = field_info_default_value_types();
+  $header = array(
+    'type' => array('data' => t('Type')), 
+    'settings' => array('data' => t('Settings')),
+    'instance_settings' => array('data' => t('Instance settings')),
+    'default_value' => array('data' => t('default_values'))
+  );
+  $rows = array();
+  foreach ($fields as $key => $field) {
+    $settings = array();
+    foreach ($field['settings'] as $setting => $value) {
+      $settings[] = $setting . ' (<em>' . (is_array($value) ? print_r($value, TRUE) : $value) . '</em>)';
+    }
+    $instance_settings = array();
+    foreach ($field['instance_settings'] as $instance_setting => $value) {
+      $instance_settings[] = $instance_setting . ' (<em>' . (is_array($value) ? print_r($value, TRUE) : $value) . '</em>)';
+    }
+    $field_default_values = array();
+    foreach ($default_values as $default_value => $value) {
+      if (in_array($key, $value["field types"])) {
+        $field_default_values[] = $default_value;
+      }
+    }
+    $rows[] = array(
+      'type' => array('data' => '<strong>' . $key . '</strong><br />' . $field['description']),
+      'settings' => array('data' => 
+         theme_item_list(array('items' => $settings, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
+       ),
+      'instance_settings' => array('data' => 
+         theme_item_list(array('items' => $instance_settings, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
+       ),
+      'default_values' => array('data' => 
+         theme_item_list(array('items' => $field_default_values, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
+       )
+    );
+  }
+  $html = '<h2>'. t('Field types') . '</h2>';
+  $html .= theme('table', array('header' => $header, 'rows' => $rows));
+  $html .= '<h2>' .t('default_value types') . '</h2>';
+  $header = array(
+    'default_value' => array('data' => t('default_value')),
+    'settings' => array('data' => t('Settings')),
+  );
+  $rows = array();
+  foreach($default_values as $key => $default_value) {
+    $settings = array();
+    foreach ($default_value['settings'] as $setting => $value) {
+      $settings[] = $setting . ' (' . (is_array($value) ? print_r($value, TRUE) : $value) . ')';
+    }
+    $rows[] = array(
+      'default_value' => array('data' => '<strong>' . $key . '</strong><br />' . $default_value['label']),
+      'settings' => array('data' => implode(', ', $settings))
+    );
+  }
+  $html .= theme('table', array('header' => $header, 'rows' => $rows));
+  $html .= '<h2>' .t('Permission list') . '</h2>';
+  $perms = array();
+  foreach (module_list(FALSE, FALSE, TRUE) as $module) {
+    if ($permissions = module_invoke($module, 'permission')) {
+      asort($permissions);
+      foreach ($permissions as $perm => $data) {
+        $perms[] = '<strong>' . $perm . '</strong> (' . $data['title'] . ')';
+      }
+    }
+  }
+  sort($perms);
+  $html .= theme_item_list(array("items" => $perms, "title" => NULL, "type" => "ul", "attributes" => array()));
+  return $html;
+}
+
+function kw_tools_install_fields($fields) {
+  foreach ($fields as $key => $field) {
+    $new_field = array(
+      'field_name' => $key,
+      'type' => $field['type'],
+    );
+    if (isset($field['settings'])) {
+      $new_field['settings'] = $field['settings'];
+    }
+    if (isset($field['entity_types'])) {
+      $new_field['entity_types'] = $field['entity_types'];
+    }
+    if (isset($field['cardinality'])) {
+      $new_field['cardinality'] = $field['cardinality'];
+    }
+    if (isset($field['translatable'])) {
+      $new_field['translatable'] = $field['translatable'];
+    }
+    field_create_field($new_field);
+    $instance = array(
+      'field_name' => 'field_' . $key,
+      'entity_type' => 'node',
+      'label' => $field['label'],
+      'bundle' => $new_field->type,
+      'default_value' => $field['default_value']
+    );
+    if (isset($field['instance'])) {
+      $instance['settings'] = $field['instance'];
+    }
+    if (isset($field['description'])) {
+      $instance['description'] = $field['description'];
+    }
+    if (isset($field['required'])) {
+      $instance['required'] = $field['required'];
+    }
+    if (isset($field['default_value'])) {
+      $instance['default_value'] = $field['default_value'];
+    }
+    if (isset($field['default_value_function'])) {
+      $instance['default_value_function'] = $field['default_value_function'];
+    }
+    if (isset($field['widget'])) {
+      $instance['widget'] = $field['widget'];
+    }
+    if (isset($field['display'])) {
+      $instance['display'] = $field['display'];
+    }
+    field_create_instance($instance);
   }
 }
 
