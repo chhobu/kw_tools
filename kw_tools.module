@@ -123,6 +123,12 @@ function kw_tools_get_locale_value($node, $field, $data = NULL) {
     }
     return $node->{$field}[$language];
   }
+  elseif (isset($node->{$field}['und'])) {
+    if (!is_null($data) && isset($node->{$field}['und'][0][$data])) {
+      return $node->{$field}['und'][0][$data];
+    }
+    return $node->{$field}['und'];
+  }
   else if(isset($node->$field) && is_array($node->$field)) {
     $array = current($node->$field);
     if (!is_null($data) && isset($array[0][$data])) {
@@ -136,18 +142,19 @@ function kw_tools_get_locale_value($node, $field, $data = NULL) {
 }
 
 /**
- * Ajoute des données sur un champ de formulaire afin de le coordonner avec un default_value jquery
+ * Ajoute des données sur un champ de formulaire afin de le coordonner avec un widget jquery
  * @param unknown_type $field
  * @param unknown_type $extra_classes
  * @param unknown_type $params
  * @param unknown_type $form
  */
-function kw_tools_add_special_default_value($field, $extra_classes, $params, &$form) {
+function kw_tools_add_special_widget($field, $extra_classes, $params, &$form) {
   $params_id = "kwwp-" . $field;
   if (!is_null($params) && count($params) > 0 && !isset($form[$params_id])) {
     $form[$params_id] = array(
       "#type" => "hidden",
-      "#value" => json_encode($params)
+      "#value" => json_encode($params),
+      "#attributes" => array("id" => $params_id)
     );
     $extra_classes[] = $params_id;
   }
@@ -180,7 +187,7 @@ function kw_tools_create_fieldset($name, $title, $fields, &$form, $options = arr
 
 /**
  * Renvoie un nombre formaté
- * @param mixed $input, la chaîne à formater 
+ * @param mixed $input, la chaîne à formater
  * @param array $options, peut contenir les options precision, decimal, thousands, suffix, prefix
  */
 function kw_tools_number_format($input, $options = array()) {
@@ -231,12 +238,14 @@ function kw_tools_null_dispatcher($value, $null, $non_null) {
  */
 function kw_tools_help_page() {
   $fields = field_info_field_types();
-  $default_values = field_info_default_value_types();
+  $widgets = field_info_widget_types();
+  $formatters = field_info_formatter_types();
+  // Field types
   $header = array(
-    'type' => array('data' => t('Type')), 
+    'type' => array('data' => t('Type')),
     'settings' => array('data' => t('Settings')),
     'instance_settings' => array('data' => t('Instance settings')),
-    'default_value' => array('data' => t('default_values'))
+    'widget' => array('data' => t('Widgets'))
   );
   $rows = array();
   foreach ($fields as $key => $field) {
@@ -248,44 +257,68 @@ function kw_tools_help_page() {
     foreach ($field['instance_settings'] as $instance_setting => $value) {
       $instance_settings[] = $instance_setting . ' (<em>' . (is_array($value) ? print_r($value, TRUE) : $value) . '</em>)';
     }
-    $field_default_values = array();
-    foreach ($default_values as $default_value => $value) {
+    $field_widgets = array();
+    foreach ($widgets as $widget => $value) {
       if (in_array($key, $value["field types"])) {
-        $field_default_values[] = $default_value;
+        $field_widgets[] = $widget;
       }
     }
     $rows[] = array(
       'type' => array('data' => '<strong>' . $key . '</strong><br />' . $field['description']),
-      'settings' => array('data' => 
-         theme_item_list(array('items' => $settings, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
+      'settings' => array('data' =>
+         theme('item_list', array('items' => $settings, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
        ),
-      'instance_settings' => array('data' => 
-         theme_item_list(array('items' => $instance_settings, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
+      'instance_settings' => array('data' =>
+         theme('item_list', array('items' => $instance_settings, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
        ),
-      'default_values' => array('data' => 
-         theme_item_list(array('items' => $field_default_values, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
+      'widgets' => array('data' =>
+         theme('item_list', array('items' => $field_widgets, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
        )
     );
   }
   $html = '<h2>'. t('Field types') . '</h2>';
   $html .= theme('table', array('header' => $header, 'rows' => $rows));
-  $html .= '<h2>' .t('default_value types') . '</h2>';
+  // Widgets info
+  $html .= '<h2>' .t('Widget types') . '</h2>';
   $header = array(
-    'default_value' => array('data' => t('default_value')),
+    'widget' => array('data' => t('Widget')),
     'settings' => array('data' => t('Settings')),
+    'fields' => array('data' => t('Field types')),
   );
   $rows = array();
-  foreach($default_values as $key => $default_value) {
+  foreach ($widgets as $key => $widget) {
     $settings = array();
-    foreach ($default_value['settings'] as $setting => $value) {
+    foreach ($widget['settings'] as $setting => $value) {
       $settings[] = $setting . ' (' . (is_array($value) ? print_r($value, TRUE) : $value) . ')';
     }
     $rows[] = array(
-      'default_value' => array('data' => '<strong>' . $key . '</strong><br />' . $default_value['label']),
-      'settings' => array('data' => implode(', ', $settings))
+      'widget' => array('data' => '<strong>' . $key . '</strong><br />' . $widget['label']),
+      'settings' => array('data' => implode(', ', $settings)),
+      'fields' => array('data' => theme('item_list', array('items' => $widget['field types'], 'type' => 'ul', 'title' => NULL, 'attributes' => array())))
     );
   }
   $html .= theme('table', array('header' => $header, 'rows' => $rows));
+  // Formatters info
+  $html .= '<h2>'. t('Formatters') . '</h2>';
+  $header = array(
+    'formatter' => array('data' => t('Formatter')),
+    'settings' => array('data' => t('Settings')),
+    'fields' => array('data' => t('Field types')),
+  );
+  $rows = array();
+  foreach ($formatters as $key => $formatter) {
+    $settings = array();
+    foreach ($formatter['settings'] as $setting => $value) {
+      $settings[] = $setting . ' (' . (is_array($value) ? print_r($value, TRUE) : $value) . ')';
+    }
+    $rows[] = array(
+      'formatter' => array('data' => '<strong>' . $key . '</strong><br />' . $formatter['label']),
+      'settings' => array('data' => implode(', ', $settings)),
+      'fields' => array('data' => theme('item_list', array('items' => $formatter['field types'], 'type' => 'ul', 'title' => NULL, 'attributes' => array())))
+    );
+  }
+  $html .= theme('table', array('header' => $header, 'rows' => $rows));
+  // Permission info
   $html .= '<h2>' .t('Permission list') . '</h2>';
   $perms = array();
   foreach (module_list(FALSE, FALSE, TRUE) as $module) {
@@ -297,14 +330,19 @@ function kw_tools_help_page() {
     }
   }
   sort($perms);
-  $html .= theme_item_list(array("items" => $perms, "title" => NULL, "type" => "ul", "attributes" => array()));
+  $html .= theme("item_list", array("items" => $perms, "title" => NULL, "type" => "ul", "attributes" => array()));
   return $html;
 }
 
-function kw_tools_install_fields($fields) {
+/**
+ * Création simultanée de champs et d'instances
+ * @param unknown_type $fields
+ */
+function kw_tools_install_fields($fields, $node_type) {
+  $old_fields = field_read_fields();
   foreach ($fields as $key => $field) {
     $new_field = array(
-      'field_name' => $key,
+      'field_name' => 'field_' . $key,
       'type' => $field['type'],
     );
     if (isset($field['settings'])) {
@@ -319,13 +357,14 @@ function kw_tools_install_fields($fields) {
     if (isset($field['translatable'])) {
       $new_field['translatable'] = $field['translatable'];
     }
-    field_create_field($new_field);
+    if (!isset($old_fields[$key])) {
+      field_create_field($new_field);
+    }
     $instance = array(
       'field_name' => 'field_' . $key,
       'entity_type' => 'node',
       'label' => $field['label'],
-      'bundle' => $new_field->type,
-      'default_value' => $field['default_value']
+      'bundle' => $node_type,
     );
     if (isset($field['instance'])) {
       $instance['settings'] = $field['instance'];

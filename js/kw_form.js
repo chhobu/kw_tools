@@ -28,10 +28,13 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
     steps = new Array;
     min = null;
     max = null;
+    params = null;
     classes = $(this).filter(".container-info").length > 0 ? $(this).parents("div.numeric-widget").attr("class").split(" ") : $(this).attr("class").split(" ");
     for(j=0; j < classes.length; j++) {
       if(classes[j].substr(0,5) == "step-") {
         steps[steps.length] = parseFloat(classes[j].substr(5));}
+      else if(classes[j].substr(0,5) == "kwwp-") {
+        params = jQuery.parseJSON($("#" + classes[j]).val());}
       else if(classes[j].substr(0,4) == "max-") {
         max = parseFloat(classes[j].substr(4));}
       else if(classes[j].substr(0,4) == "min-") {
@@ -44,8 +47,12 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
     hAfter = "<td><table class='numeric-widget-right-controls'>";
     $(this).data("limits", {min: min, max: max});
     for(i = 0; i < steps.length; i++) {
-      hBefore += "<tr class='no-hover'><td><input type='button' class='numeric-widget-button nmw-minus' value='-"+steps[i]+"' /></td></tr>";
-      hAfter += "<tr class='no-hover'><td><input type='button' class='numeric-widget-button nmw-plus' value='+"+steps[i]+"' /></td></tr>";
+      if(params != null && params.labels && params.labels[steps[i]]) {
+        label = params.labels[steps[i]];}
+      else {
+        label = steps[i];}
+      hBefore += "<tr class='no-hover'><td><input type='button' class='numeric-widget-button nmw-minus' value='-"+label+"' title='-"+steps[i]+"' /></td></tr>";
+      hAfter += "<tr class='no-hover'><td><input type='button' class='numeric-widget-button nmw-plus' value='+"+label+"' title='+"+steps[i]+"' /></td></tr>";
     }
     hBefore += "</table></td>";
     hAfter += "</table></td>";
@@ -55,7 +62,7 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
     nmw_change_handler($(this), 0);
   });
   $("input[type=button].numeric-widget-button").not(".nmw-processed").addClass("nmw-processed").click(function() {
-    nmw_change_handler($(this).parents(".numeric-widget-instance").find("input.numeric-widget"), parseFloat($(this).val()));
+    nmw_change_handler($(this).parents(".numeric-widget-instance").find("input.numeric-widget"), parseFloat($(this).attr("title")));
   });
   // Multi-select widget functions
   var msw_build_items_object = function($area, type) {

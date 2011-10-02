@@ -583,11 +583,18 @@ function kw_datagrid_mass_edit_form_submit($form, &$form_state) {
     }
   }
   $storage_key = key($form_state["field"][$field]["und"]["field"]["columns"]);
+  $translatable = $form_state["field"][$field]["und"]["field"]["translatable"];
   $nodes = node_load_multiple($values["nid"]);
   foreach($nodes as $node) {
     $key = array_search($node->nid, $values["nid"]);
+    if ($translatable) {
+      $language = $node->language;
+    }
+    else {
+      $language = 'und';
+    }
     $new_value = array(
-      $node->language => array(
+      $language => array(
         0 => array(
           $storage_key => $values[$field][$key]
         )

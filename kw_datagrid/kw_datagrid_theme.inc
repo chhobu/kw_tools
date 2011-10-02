@@ -158,7 +158,7 @@ function theme_datagrid($variables) {
   }
   $output .= "</table>\n";
   $form = $datagrid->buildForm();
-  if (!is_null($form) && $datagrid->getUnfilteredTotalResults() > 1) {
+  if (!is_null($form) && ($datagrid->getUnfilteredTotalResults() > 1 || ($datagrid->getUnfilteredTotalResults() > 0 && $datagrid->hasSelectablesColumns()))) {
     $output .= "<div class='datagrid-filters'>"
       . drupal_render($form)
       ."</div>";
