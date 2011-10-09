@@ -180,7 +180,7 @@ function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header
       // If the user clicks a different header, we want to sort ascending initially.
       $image = '';
     }
-    $cell['data'] = l($cell['data'] . $image, "kw_datagrid/nojs/", 
+    $cell['data'] = l($cell['data'] . $image, "kw_datagrid/nojs/",
       array(
         'attributes' => array(
           'title' => $title,
@@ -313,8 +313,8 @@ function theme_datagrid_pager_first($variables) {
   // If we are anywhere but the first page
   if ($datagrid->getCurrentPage() > 0) {
     $output = theme('datagrid_pager_link', array(
-      'text' => $text, 
-      'page_new' => 0, 
+      'text' => $text,
+      'page_new' => 0,
       'datagrid' => $datagrid,
       'parameters' => $parameters));
   }
@@ -484,7 +484,7 @@ function theme_datagrid_item_navigation($variables) {
       foreach ($prev["rows"] as $row) {
         $content[] = $row["data"];
       }
-      $output .= "<div class='nav-prev'>" . l($prev["label"], $prev["link"], array("attributes" => array("class" => array("prev"), "title" => strip_tags(implode(" | ", $content))))) . (count($prev["rows"]) == 0 ? 
+      $output .= "<div class='nav-prev'>" . l($prev["label"], $prev["link"], array("attributes" => array("class" => array("prev"), "title" => strip_tags(implode(" | ", $content))))) . (count($prev["rows"]) == 0 ?
         "" : " : ". implode(" | ", $content)) . "</div>";
     }
     if (!is_null($variables["next"])) {
@@ -493,7 +493,7 @@ function theme_datagrid_item_navigation($variables) {
       foreach ($next["rows"] as $row) {
         $content[] = $row["data"];
       }
-      $output .= "<div class='nav-next'>" . l($next["label"], $next["link"], array("attributes" => array("class" => array("next"), "title" => strip_tags(implode(" | ", $content))))). (count($next["rows"]) == 0 ? 
+      $output .= "<div class='nav-next'>" . l($next["label"], $next["link"], array("attributes" => array("class" => array("next"), "title" => strip_tags(implode(" | ", $content))))). (count($next["rows"]) == 0 ?
         "" : " : ". implode(" | ", $content)) . "</div>";
     }
   }
@@ -521,7 +521,7 @@ function theme_datagrid_mass_edit($variables) {
           .(isset($form["instance-" . $key]["#field_suffix"]) ? $form["instance-" . $key]["#field_suffix"] : "");
       }
       elseif ($column == $form["title_column"]["#value"]) {
-        $rows[$key][$column]["data"] = theme("form_element_label", 
+        $rows[$key][$column]["data"] = theme("form_element_label",
           array("element" => $form["instance-" .$key]));
       }
     }

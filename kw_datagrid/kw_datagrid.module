@@ -86,7 +86,7 @@ function kw_datagrid_retrieve_datagrid_data($datagrid, $type) {
   }
   elseif (isset($_SESSION["kw_datagrid"][$datagrid][$type])) {
     return $_SESSION["kw_datagrid"][$datagrid][$type];
-  } 
+  }
   return FALSE;
 }
 
@@ -124,7 +124,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
   $form["fieldset"] = array(
     "#type" => "fieldset",
     "#title" => "<span class='search'>".(count($datagrid->getFilters("aliases")) > 0 ? t("Filter results") : "")
-      . ((count($datagrid->getPagerOptions()) >0 || count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0) 
+      . ((count($datagrid->getPagerOptions()) >0 || count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0)
         ? (count($datagrid->getFilters("aliases")) > 0 ? " / " : "") . t("Display options") : "")."</span>",
     "#collapsible" => TRUE,
     "#prefix" => "<div id='" . $datagrid->getId() . "-form'>",
@@ -151,7 +151,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
         $key = str_replace(array("filter-remove[","]"), "", $trigger);
         $datagrid->removeActiveFilter($key);
       }
-    }    
+    }
     $form["fieldset"]["filter-select"] = array(
       "#type" => "select",
       "#title" => t("Add a filter"),
@@ -249,7 +249,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
           "#type" => "image_button",
           "#src" => drupal_get_path("module", "kw_datagrid") . "/img/minus3.png",
           "#attributes" => array(
-             "title" => t("Remove this filter"), 
+             "title" => t("Remove this filter"),
              "alt" => t("Remove"),
              "class" => array("ajax-enabled")
           ),
@@ -341,7 +341,7 @@ function kw_datagrid_validate_numeric($form, &$form_state) {
     if ($filter !== FALSE && $filters["type"][$filter] == KW_FILTRABLE_NUM && $form_state["input"]["filter-value"][$key] != "") {
       $form_state["input"]["filter-value"][$key] = str_replace(",", ".", $form_state["input"]["filter-value"][$key]);
       if(!is_numeric($form_state["input"]["filter-value"][$key])) {
-        form_set_error("filter-value-".$key, t("Only numbers are allowed in %field.", 
+        form_set_error("filter-value-".$key, t("Only numbers are allowed in %field.",
           array("%field" => $form["fieldset"]["filters"][$key]["filter-value-" . $key]["#title"])));
       }
     }
@@ -404,7 +404,7 @@ function kw_datagrid_filter_form_submit($form, &$form_state) {
     if ($datagrid->hasSelectablesColumns()) {
       $query["columns"] = serialize($datagrid->retrieveSelectedColumns(isset($columns) ? $columns : NULL));
     }
-    $form_state["redirect"] = array(isset($_GET["page"]) ? $_GET["page"] : $_GET["q"], 
+    $form_state["redirect"] = array(isset($_GET["page"]) ? $_GET["page"] : $_GET["q"],
       array("query" => $query));
   }
   else {
@@ -554,12 +554,12 @@ function kw_datagrid_mass_edit_validate($form, &$form_state) {
   $module = $instance["widget"]["module"];
   $validation_function = $module . "_field_validate";
   $keyword = "instance-";
-  
+
   foreach ($form_state["values"] as $key => $value) {
     if (substr($key,0,strlen($keyword)) == $keyword) {
       $entity = new stdClass();
       $errors = array();
-      $validation_function($form_state["values"]["args"]["edit"]["entity"], $entity, 
+      $validation_function($form_state["values"]["args"]["edit"]["entity"], $entity,
         $w_field, $instance, $langcode, array(0=>array("value" => $value)), $errors);
       if(count($errors) > 0) {
         form_set_error($key, $errors[$w_field["field_name"]][$langcode][0][0]["message"]);
@@ -583,16 +583,10 @@ function kw_datagrid_mass_edit_form_submit($form, &$form_state) {
     }
   }
   $storage_key = key($form_state["field"][$field]["und"]["field"]["columns"]);
-  $translatable = $form_state["field"][$field]["und"]["field"]["translatable"];
   $nodes = node_load_multiple($values["nid"]);
   foreach($nodes as $node) {
     $key = array_search($node->nid, $values["nid"]);
-    if ($translatable) {
-      $language = $node->language;
-    }
-    else {
-      $language = 'und';
-    }
+    $language = field_language('node', $node, $field);
     $new_value = array(
       $language => array(
         0 => array(

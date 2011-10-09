@@ -151,7 +151,7 @@ function kw_tools_get_locale_value($node, $field, $data = NULL) {
 function kw_tools_add_special_widget($field, $extra_classes, $params, &$form) {
   $params_id = "kwwp-" . $field;
   if (!is_null($params) && count($params) > 0 && !isset($form[$params_id])) {
-    $form[$params_id] = array(
+    $form[$field][$params_id] = array(
       "#type" => "hidden",
       "#value" => json_encode($params),
       "#attributes" => array("id" => $params_id)
@@ -237,6 +237,7 @@ function kw_tools_null_dispatcher($value, $null, $non_null) {
  * Enter description here ...
  */
 function kw_tools_help_page() {
+  $old_fields = field_read_fields();
   $fields = field_info_field_types();
   $widgets = field_info_widget_types();
   $formatters = field_info_formatter_types();
@@ -357,7 +358,7 @@ function kw_tools_install_fields($fields, $node_type) {
     if (isset($field['translatable'])) {
       $new_field['translatable'] = $field['translatable'];
     }
-    if (!isset($old_fields[$key])) {
+    if (!isset($old_fields[$new_field['field_name']])) {
       field_create_field($new_field);
     }
     $instance = array(
