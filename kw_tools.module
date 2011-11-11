@@ -407,6 +407,9 @@ function __debug($var, $die = TRUE, $alert = FALSE) {
     echo "<script type='text/javascript'>alert(print_r($var, TRUE))</script>";
   }
   else {
+    if (is_string($var)) {
+      $var = htmlentities($var);
+    }
     echo "<pre>" . print_r($var, TRUE) . "</pre>";
   }
   if ($die) {
