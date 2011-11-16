@@ -6,53 +6,61 @@ define("KW_FILTRABLE_NUM", 3);
 define("KW_FILTRABLE_ENUM", 4);
 
 class KwDatagrid {
-  private $id;
-  private $constructor;
-  private $table;
-  private $tables = array();
-  private $headers = array();
-  private $conditions = array();
-  private $fields = array();
-  private $columns = array();
-  private $defaultOrders = array();
-  private $attributes = array();
-  private $filters = array();
-  private $activeFilters = array();
-  private $appliedFilters = array();
-  private $sortables = array();
-  private $replacements = array();
-  private $colgroup = NULL;
-  private $caption = NULL;
-  private $title = NULL;
-  private $titleMode = "h2";
-  private $extraCaption;
-  private $emptyText = NULL;
-  private $use_sticky = TRUE;
-  private $use_ajax = TRUE;
-  private $weight = 0;
-  private $persistant = TRUE;
-  private $pager = 0;
-  private $pager_quantity = 9;
-  private $pager_options = array();
-  private $total_results = 0;
-  private $unfiltered_total_results = 0;
-  private $rank_result = 0;
-  private $current_page = -1;
-  private $current_sort = NULL;
-  private $mode = "list";
-  private $mode_context = array();
-  private $linked_node = NULL;
-  private $key = NULL;
-  private $intro = NULL;
-  private $outro = NULL;
-  private $selectable_columns = FALSE;
-  private $pool = NULL;
+  private $id; // Identifiant de la table
+  private $constructor; // Fonction où est appelée la grille
+  private $table; // Table principale de la BdD de la requête
+  private $tables = array(); // Tables supplémentaires de la BdD présentes dans la requête
+  private $headers = array(); // En-tête du tableau
+  private $conditions = array(); // Conditions présentes sur la requête
+  private $fields = array(); // Champs issus de la requête
+  private $columns = array(); // Colonnes de la grille
+  private $defaultOrders = array(); // Tri par défaut
+  private $attributes = array(); // Attributs HTML présents sur le tableau
+  private $filters = array(); // Liste des filtres disponibles
+  private $activeFilters = array(); // Liste des filtres actifs
+  private $appliedFilters = array(); // Liste des filtres appliqués
+  private $sortables = array(); // Liste des tris possibles
+  private $replacements = array(); // Traitements supplémentaires enregistrés pour chaque colonne lors de la transformation requête -> grille
+  private $colgroup = NULL; // Regroupement de colonnes dans la grille
+  private $caption = NULL; // Titre du tableau
+  private $title = NULL; // Titre global
+  private $titleMode = "caption"; // Mode d'affichage du titre : balise HTML ou caption
+  private $extraCaption; // Chaînes de texte personnalisables
+  private $emptyText = NULL; // Texte affiché si aucun résultat
+  private $use_sticky = TRUE; // Utilisation de l'en-tête collant des tableaux
+  private $use_ajax = TRUE; // Utilisation d'Ajax (oui/non)
+  private $weight = 0; // Position de la datagrid parmi les autres éléments affichés
+  private $persistant = TRUE; // Utilisation des sessions pour conserver les choix effectués
+  private $pager = 0; // Pager : identifiant du pager (si plusieurs utilisations dans la page)
+  private $pager_quantity = 9; // Nombre de liens dans la pagination
+  private $pager_options = array(); // Options du pager : choix du nombre de pages
+  private $total_results = 0; // Nombre total de résultats
+  private $unfiltered_total_results = 0; // Nombre de résultats sur la requête non filtrée
+  private $rank_result = 0; // Dans le cas d'un affichage en mode item : position de l'enregistrement courant
+  private $current_page = -1; // Page active
+  private $current_sort = NULL; // Tri actif
+  private $mode = 'list'; // Mode d'affichage : liste ou item ou mass-edition
+  private $mode_context = array(); // Contexte d'affichage du mode : tableau conteant item_id et entity_type
+  private $linked_node = NULL; // Dans le cas d'un affichage en mode item : node d'origine
+  private $key = NULL; // Colonne servant de clé unique pour les résultats de la requête
+  private $intro = NULL; // Texte affiché avant la grille
+  private $outro = NULL; // Texte affiché après la grille
+  private $selectable_columns = FALSE; // Présence de colonnes sélectionnables
+  private $pool = NULL; // Utilisation d'un 'pool' pour conserver les préférences utilisateurs d'une grille à l'autre
+  private $related_blocks = array(); // Blocs  dynamiques dépendant des sélections du tableau, affichés avant ou après la grille
 
-  public function __construct($id, $table, $alias, $caption, $options = array()) {
+  public function __construct($id, $table, $alias, $function, array $args, array $options = array()) {
+    foreach($args as $key => $arg) {
+      if (is_array($arg)) {
+        trigger_error('Arg #' . $key . ' for datagrid ' . $id . ' can not be an array.', E_USER_ERROR);
+      }
+      elseif (is_object($arg)) {
+        trigger_error('Arg #' . $key . ' for datagrid ' . $id . ' can not be an object.', E_USER_ERROR);
+      }
+    }
     $this->id = $id;
     $this->table = $table;
     $this->tables[$alias] = $table;
-    $this->caption = trim($caption);
     $this->pool = $id;
     if (isset($options["weight"])) {
       $this->weight = $options["weight"];
@@ -90,10 +98,9 @@ class KwDatagrid {
       $this->reset();
     }
     if($this->mode != "item" && !kw_datagrid_retrieve_datagrid_data($this, "constructor")) {
-      $trace = debug_backtrace(FALSE);
       $this->constructor = array(
-        "function" => $trace[1]["function"],
-        "args" => $trace[1]["args"]
+        "function" => $function,
+        "args" => $args
       );
       $this->storeInSession("constructor", $this->constructor, FALSE);
     }
@@ -622,7 +629,7 @@ class KwDatagrid {
       $this->mode_context = array("column" => $_GET["mass_edit"]);
     }
     // Récupération de la valeur du pager
-    if (isset($_GET["pager"]) && is_numeric($_GET["pager"]) && $_GET["pager"] >= 0) {
+    if ($target_grid == $this->id && isset($_GET["pager"]) && is_numeric($_GET["pager"]) && $_GET["pager"] >= 0) {
       $this->pager = $_GET["pager"];
       if ($this->persistant) {
         $this->storeInSession("pager", $_GET["pager"]);
@@ -664,7 +671,7 @@ class KwDatagrid {
       }
     }
     // Récupération des filtres actifs
-    if (isset($_GET["filters"])) {
+    if (isset($_GET["filters"]) && $this->id == $target_grid) {
       $filters = unserialize($_GET["filters"]);
       if (is_array($filters)) {
         $this->activeFilters = $filters;
@@ -775,89 +782,97 @@ class KwDatagrid {
         }
       }
     }
-    $orig_caption = $this->caption;
+    $supercaption = '';
     // Création de l'en-tête et des titres
-    if (!is_null($this->caption)) {
-      if ($this->titleMode == "caption" && !is_null($this->title)) {
-        $this->caption = $this->title;
+    if ($this->titleMode == 'caption' && !is_null($this->title)) {
+      $supercaption = $this->title;
+    }
+    elseif (!is_null($this->caption)) {
+      $supercaption = $this->caption;
+    }
+    if (trim($supercaption) != '') {
+      $supercaption = '<strong> ' . $supercaption . ' :</strong> ';
+    }
+    if (count($this->appliedFilters) == 0) {
+      if (isset($this->extraCaption["single_result"]) && $this->total_results == 1) {
+        $supercaption .= "<span class='results'>" .
+          t($this->extraCaption["single_result"]) . "</span>";
       }
-      if (trim($this->caption) != "") {
-        $this->caption = "<strong> " . $this->caption . " :</strong> ";
+      elseif (isset($this->extraCaption["many_results"]) && $this->total_results > 1) {
+        $currentSort = $this->getCurrentSort();
+        if($currentSort != 0) {
+          $currentKey = array_search(abs($currentSort), $this->sortables["id"]);
+        }
+        $supercaption .= "<span class='results'>"
+        . t($this->extraCaption["many_results"], array(
+          "%total_results" => $this->total_results,
+            "!order" => $currentSort == 0 ? t("default")
+              : "<em>" . $this->sortables["label"][$currentKey] . "</em>"
+              . ($currentSort == 0 ? "": " ". ($currentSort > 0 ? t("ascending") : t("descending"))))
+          )
+        . "</span>";
       }
-      if (count($this->appliedFilters) == 0) {
-        if (isset($this->extraCaption["single_result"]) && $this->total_results == 1) {
-          $this->caption .= "<span class='results'>" .
-            t($this->extraCaption["single_result"]) . "</span>";
-        }
-        elseif (isset($this->extraCaption["many_results"]) && $this->total_results > 1) {
-          $currentSort = $this->getCurrentSort();
-          if($currentSort != 0) {
-            $currentKey = array_search(abs($currentSort), $this->sortables["id"]);
-          }
-          $this->caption .= "<span class='results'>"
-            . t($this->extraCaption["many_results"], array(
-              "%total_results" => $this->total_results,
-              "!order" => $currentSort == 0 ? t("default")
-                : "<em>" . $this->sortables["label"][$currentKey] . "</em>"
-                . ($currentSort == 0 ? "": " ". ($currentSort > 0 ? t("ascending") : t("descending")))))
-            . "</span>";
-        }
+    }
+    else {
+      if (isset($this->extraCaption["single_result_filtered"]) && $this->total_results == 1) {
+        $supercaption .= "<span class='results'>" .
+          t($this->extraCaption["single_result_filtered"], array("%unfiltered_total" => $this->unfiltered_total_results)) . "</span>";
       }
-      else {
-        if (isset($this->extraCaption["single_result_filtered"]) && $this->total_results == 1) {
-          $this->caption .= "<span class='results'>" .
-            t($this->extraCaption["single_result_filtered"], array("%unfiltered_total" => $this->unfiltered_total_results)) . "</span>";
+      elseif (isset($this->extraCaption["many_results_filtered"]) && $this->total_results > 1) {
+        $currentSort = $this->getCurrentSort();
+        if($currentSort != 0) {
+          $currentKey = array_search(abs($currentSort), $this->sortables["id"]);
         }
-        elseif (isset($this->extraCaption["many_results_filtered"]) && $this->total_results > 1) {
-          $currentSort = $this->getCurrentSort();
-          if($currentSort != 0) {
-            $currentKey = array_search(abs($currentSort), $this->sortables["id"]);
-          }
-          $this->caption .= "<span class='results'>" .
-            t($this->extraCaption["many_results_filtered"], array(
-              "%total_results" => $this->total_results,
-              "%unfiltered_total" => $this->unfiltered_total_results,
-              "!order" => $currentSort == 0 ? t("default")
-                : "<em>" . $this->sortables["label"][$currentKey] . "</em>"
-                . ($currentSort == 0 ? "": " ". ($currentSort > 0 ? t("ascending") : t("descending")))
-            )) . "</span>";
-        }
-        if (count($this->appliedFilters) == 1 && isset($this->extraCaption["single_filter"])) {
-          $this->caption .= " <span class='filters'>"
-          . t($this->extraCaption["single_filter"], array("!filters" => implode(" ", $this->appliedFilters))) . "</span>";
-        }
-        elseif (isset($this->extraCaption["many_filters"])) {
-          $this->caption .= " <span class='filters'>"
-          . t($this->extraCaption["many_filters"], array("%nb_filters" => count($this->appliedFilters), "!filters" => implode(" ", $this->appliedFilters))) . "</span>";
-        }
-        $this->caption .= " <span class='reset-filters'><a href='?reset=1#". $this->id ."'>"
-          . t("(Remove all filters)") . "</a>.</span>";
+        $supercaption .= "<span class='results'>" .
+          t($this->extraCaption["many_results_filtered"], array(
+            "%total_results" => $this->total_results,
+            "%unfiltered_total" => $this->unfiltered_total_results,
+            "!order" => $currentSort == 0 ? t("default")
+              : "<em>" . $this->sortables["label"][$currentKey] . "</em>"
+              . ($currentSort == 0 ? "": " ". ($currentSort > 0 ? t("ascending") : t("descending")))
+          )) . "</span>";
       }
-      if ($this->pager > 0 && $this->total_results > $this->pager) {
-        $this->caption .= " <span class='pager-active'>" .
-          t($this->extraCaption["pager"], array("%start" => 1 + $this->current_page * $this->pager,
-            "%end" => min(($this->current_page + 1) * $this->pager, $this->total_results))) . "</span>";
+      if (count($this->appliedFilters) == 1 && isset($this->extraCaption["single_filter"])) {
+        $supercaption .= " <span class='filters'>"
+        . t($this->extraCaption["single_filter"], array("!filters" => implode(" ", $this->appliedFilters))) . "</span>";
       }
+      elseif (isset($this->extraCaption["many_filters"])) {
+        $supercaption .= " <span class='filters'>"
+        . t($this->extraCaption["many_filters"], array("%nb_filters" => count($this->appliedFilters), "!filters" => implode(" ", $this->appliedFilters))) . "</span>";
+      }
+      $supercaption .= " <span class='reset-filters'><a href='?reset=1#". $this->id ."'>"
+        . t("(Remove all filters)") . "</a>.</span>";
+    }
+    if ($this->pager > 0 && $this->total_results > $this->pager) {
+      $supercaption .= " <span class='pager-active'>" .
+        t($this->extraCaption["pager"], array("%start" => 1 + $this->current_page * $this->pager,
+          "%end" => min(($this->current_page + 1) * $this->pager, $this->total_results))) . "</span>";
     }
     // Message des filtres
     if ($this->total_results == 0 && $this->total_results != $this->unfiltered_total_results) {
       $this->emptyText = t("No results found matching your criteria. Try changing the filters values.");
     }
     // Déclaration des éléments envoyés à la fonction drupal_render
+    // ----------------------------------------------
+    // --------------- Mode item --------------------
+    // ----------------------------------------------
     if ($this->mode == "item" && !is_null($this->key)) {
       if (!isset($this->mode_context["entity_type"])) {
         $this->mode_context["entity_type"] = "node";
       }
-      $title = $orig_caption;
-      if(count($this->activeFilters) > 0) {
-        $title .= " (". t("Filtered :") . " " . implode(" ", $this->appliedFilters) . ")";
-      }
-      if ($this->rank_result > 0) {
-        $title .= " - ". t("result !rank of !total",
-          array("!rank" => $this->rank_result, "!total" => $this->total_results));
-      }
-      else {
-        $title .= " - ". t("unmatched result");
+      $title = NULL;
+      if (!empty($this->caption) || !empty($this->title)) {
+        $title = !empty($this->caption) ? $this->caption : $this->title;
+        if(count($this->activeFilters) > 0) {
+          $title .= " (". t("Filtered :") . " " . implode(" ", $this->appliedFilters) . ")";
+        }
+        if ($this->rank_result > 0) {
+          $title .= " - ". t("result !rank of !total",
+            array("!rank" => $this->rank_result, "!total" => $this->total_results));
+        }
+        else {
+          $title .= " - ". t("unmatched result");
+        }
       }
       $next = NULL;
       $prev = NULL;
@@ -904,16 +919,20 @@ class KwDatagrid {
         "#prev" => $prev
       );
     }
+    // ----------------------------------------------
+    // --------------- Mode list (et mass-edition) --
+    // ----------------------------------------------
     else {
       $datagrid = array(
         "#prefix" => "<div id='" . $this->id . "' class='kw-datagrid'>",
         "#suffix" => "</div>",
         "#weight" => $this->weight
       );
-      if ($this->titleMode != "caption" && !is_null($this->title) && trim($this->title) != "") {
+      if ($this->titleMode != "caption") {
         $datagrid["title"] = array(
-          "#markup" => "<" . $this->titleMode . ">" . $this->title . "</"
-            . (substr_count($this->titleMode, " ") == 0 ? $this->titleMode : substr($this->titleMode, 0, strpos($this->titleMode, " ", $needle))) . ">"
+          "#markup" => (!empty($this->title) ? ("<" . $this->titleMode . ">" . $this->title . "</"
+            . (substr_count($this->titleMode, " ") == 0 ? $this->titleMode : substr($this->titleMode, 0, strpos($this->titleMode, " ", $needle))) . ">") : '')
+          . (empty($this->caption) ? theme('datagrid_supercaption', array('supercaption' => $supercaption)) : '')
         );
       }
       if($this->mode == "mass-edition") {
@@ -926,17 +945,34 @@ class KwDatagrid {
         );
       }
       else {
-        if(!is_null($this->intro)) {
+        // TODO séparer en deux groupes les blocs supplémentaires et les trier
+        $before_blocks = $this->related_blocks;
+        if (!is_null($this->intro)) {
           $datagrid["intro"] = array(
             "#markup" => "<div class='datagrid-intro'>" . $this->intro . "</div>"
           );
+        }
+        if (!empty($before_blocks)) {
+          foreach ($before_blocks as $bk => $block) {
+            $args = array($rows, $this->headers);
+            if (!empty($block['args'])) {
+              $args = array_merge($args, $block_args);
+            }
+            $block_content = call_user_func_array($block['function'], $args);
+            if (!empty($block_content)) {
+              $datagrid['before-block-' . $bk] = array("#markup" => $block_content);
+            }
+          }
+        }
+        if (!empty($this->caption) || $this->titleMode == 'caption') {
+          $this->caption = $supercaption;
         }
         $datagrid["grid"] = array(
           "#theme" => "datagrid",
           "#datagrid" => $this,
           "#rows" => $rows
         );
-        if(!is_null($this->outro)) {
+        if (!is_null($this->outro)) {
           $datagrid["outro"] = array(
             "#markup" => "<div class='datagrid-outro'>" . $this->outro . "</div>"
           );
@@ -1269,7 +1305,7 @@ class KwDatagrid {
         }
         $string .= t("<em>!field</em> !op %value", array(
           "!field" => drupal_strtolower($this->filters["label"][$filterKey]),
-          "!op" => $ops[$activeFilter["op"]],
+          "!op" => isset($ops[$activeFilter["op"]]) ? $ops[$activeFilter["op"]] : NULL,
           "%value" => str_replace("%", "", $activeFilter["value"])
         ));
         $this->appliedFilters[] = $string;
@@ -1443,9 +1479,27 @@ class KwDatagrid {
     return array();
   }
 
-  public function reset() {
+  public function reset($mode = 'filters') {
     if (isset($_SESSION["kw_datagrid"][$this->id])) {
-      unset($_SESSION["kw_datagrid"][$this->id]);
+      if ($mode == 'filters' && isset($_SESSION["kw_datagrid"][$this->id]['filters'])) {
+        unset($_SESSION["kw_datagrid"][$this->id]['filters']);
+      }
+      else {
+        unset($_SESSION["kw_datagrid"][$this->id]);
+      }
     }
+    if ($mode != 'filters' && !is_null($this->pool) && isset($_SESSION["kw_datagrid"][$this->pool])) {
+      unset($_SESSION["kw_datagrid"][$this->pool]);
+    }
+  }
+
+  public function addRelatedBlock($function, $args = array(), $position = 'before', $weight = 0) {
+    $this->related_blocks[] = array(
+      'function' => $function,
+      'args' => $args,
+      'position' => $position,
+      'weight' => $weight
+    );
+    return $this;
   }
 }

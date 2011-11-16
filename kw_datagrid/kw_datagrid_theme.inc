@@ -529,3 +529,8 @@ function theme_datagrid_mass_edit($variables) {
   $output = theme("table", array("header" => $header, "rows" => $rows));
   return $output;
 }
+
+function theme_datagrid_supercaption($variables) {
+  $output = "<div class='info'>" . $variables['supercaption'] . "</div>";
+  return $output;
+}
