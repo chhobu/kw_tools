@@ -40,10 +40,22 @@
   padding: 0px;}
 .kw-datagrid fieldset.active-filters-container legend {
   padding: 0px;}
+.kw-datagrid .block-title {
+  text-align: center;
+  font-weight: bold;
+  color: #fff;
+  background-color: #000;}
+.kw-datagrid .block-content {
+  border: 2px solid #000;
+  margin-bottom: 0.5em;}
 html.js .kw-datagrid fieldset.collapsible fieldset .fieldset-legend {
   background-image: none;
   padding-left: inherit;}
+html.js .kw-datagrid input.filter-select-button {
+  display: none;}
 td .digit {
   text-align: right;
   padding-right: 1em;
   white-space: nowrap;}
+.rank {
+  font-weight: bold;}

@@ -25,47 +25,51 @@ function kw_datagrid_theme($existing, $type, $theme, $path) {
   return array(
     'datagrid' => array(
       'variables' => array('datagrid' => NULL, 'rows' => array()),
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_pager' => array(
       'variables' => array('datagrid' => NULL),
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_pager_first' => array(
       'variables' => array('text'=> '', 'datagrid' => NULL, 'parameters'  => array()),
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_pager_last' => array(
       'variables' => array('text'=> '', 'datagrid' => NULL, 'parameters'  => array(), 'interval' => 1),
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_pager_next' => array(
       'variables' => array('text'=> '', 'datagrid' => NULL, 'parameters'  => array(), 'interval' => 1),
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_pager_previous' => array(
       'variables' => array('text'=> '', 'datagrid' => NULL, 'parameters'  => array(), 'interval' => 1),
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_pager_link' => array(
       'variables' => array('text' => '', 'datagrid' => NULL, 'page_new' => 0, 'parameters' => array(), 'attributes' => array()),
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_active_filters' => array(
       'render element' => 'form',
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_item_navigation' => array(
       'variables' => array('title' => NULL, 'next' => NULL, 'prev' => NULL),
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_mass_edit' => array(
       'render element' => 'form',
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_supercaption' => array(
       'variables' => array('supercaption' => NULL),
-      'file' => 'kw_datagrid_theme.inc'
+      'file' => 'kw_datagrid.theme.inc'
+    ),
+    'datagrid_block' => array(
+      'variables' => array('block_id' => NULL, 'title_tag' => NULL, 'title' => NULL, 'content'=> NULL, 'block_controls' => NULL),
+      'file' => 'kw_datagrid.theme.inc'
     )
   );
 }
@@ -75,33 +79,15 @@ function kw_datagrid_theme($existing, $type, $theme, $path) {
 // -------------------------------------------------
 
 /**
- * Récupère les données d'une datagrid
- * @param mixed $datagrid : l'objet datagrid, ou bien son identifiant
- * @param string $type : type de requête
- */
-function kw_datagrid_retrieve_datagrid_data($datagrid, $type) {
-  if (is_object($datagrid))  {
-    if (isset($_SESSION["kw_datagrid"][$datagrid->getPool()][$type])) {
-      return $_SESSION["kw_datagrid"][$datagrid->getPool()][$type];
-    }
-    elseif (isset($_SESSION["kw_datagrid"][$datagrid->getId()][$type])) {
-      return $_SESSION["kw_datagrid"][$datagrid->getId()][$type];
-    }
-  }
-  elseif (isset($_SESSION["kw_datagrid"][$datagrid][$type])) {
-    return $_SESSION["kw_datagrid"][$datagrid][$type];
-  }
-  return FALSE;
-}
-
-/**
  * Réponse à une requête de type ajax sur une datagrid
  * @param unknown_type $type
  */
 function kw_datagrid_response($type = "ajax") {
   if ($type == 'ajax' && isset($_GET["grid"]) && !is_null($_GET["grid"])) {
-    $constructor = kw_datagrid_retrieve_datagrid_data($_GET["grid"], "constructor");
-    if(!$constructor) {
+    if (isset($_SESSION["kw_datagrid"][$_GET["grid"]]["constructor"])) {
+      $constructor = $_SESSION["kw_datagrid"][$_GET["grid"]]["constructor"];
+    }
+    if(empty($constructor) || !is_array($constructor)) {
       return;
     }
     $output = call_user_func_array($constructor["function"], $constructor["args"]);
@@ -171,7 +157,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
       "#type" => "submit",
       "#value" => t("Add"),
       "#name" => "add-filter",
-      "#attributes" => array("class" => array("select-button")),
+      "#attributes" => array("class" => array("filter-select-button")),
       "#limit_validation_errors" => array()
     );
     $form["fieldset"]["filters"] = array();

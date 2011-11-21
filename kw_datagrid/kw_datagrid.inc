@@ -97,7 +97,7 @@ class KwDatagrid {
     if (isset($_GET["reset"]) && $_GET["reset"] == 1) {
       $this->reset();
     }
-    if($this->mode != "item" && !kw_datagrid_retrieve_datagrid_data($this, "constructor")) {
+    if($this->mode != "item" && !$this->retrieveSessionData("constructor")) {
       $this->constructor = array(
         "function" => $function,
         "args" => $args
@@ -178,7 +178,7 @@ class KwDatagrid {
         }
       }
       elseif ($this->persistant && $this->isStoredInSession("p")) {
-        $this->current_page = kw_datagrid_retrieve_datagrid_data($this, "p");
+        $this->current_page = $this->retrieveSessionData("p");
       }
       if ($this->current_page < 0) {
         $this->current_page = 0;
@@ -233,14 +233,14 @@ class KwDatagrid {
     return $this;
   }
 
-  public function addPager($pager, $exposed = FALSE) {
+  public function addPager($pager, $pager_options = FALSE) {
     if (!is_numeric($pager)) {
       $pager = 0;
     }
     $this->pager = $pager;
-    if ($exposed) {
-      if (is_array($exposed)) {
-        $this->pager_options = $exposed;
+    if ($pager_options) {
+      if (is_array($pager_options)) {
+        $this->pager_options = $pager_options;
       }
       else {
         $this->pager_options = array(5, 10, 20, 30, 50, 100);
@@ -334,6 +334,14 @@ class KwDatagrid {
 
   public function getColumns() {
     return $this->columns;
+  }
+
+  public function addRankingColumn($options = array('uncacheable' => TRUE), $label = "#", $output = NULL) {
+    if (empty($output)) {
+      $output = "<div class='digit rank'>!rank</div>";
+    }
+    $this->addColumn("!rank", $label, $output, NULL, NULL, $options);
+    return $this;
   }
 
   public function addColumn($alias, $label, $output, $table_alias = NULL, $field = NULL, $options = NULL) {
@@ -636,7 +644,7 @@ class KwDatagrid {
       }
     }
     elseif ($this->persistant && $this->isStoredInSession("pager")) {
-      $this->pager = kw_datagrid_retrieve_datagrid_data($this, "pager");
+      $this->pager = $this->retrieveSessionData("pager");
     }
     // Récupération des colonnes affichées
     if ($this->mode == "mass-edition") {
@@ -681,7 +689,7 @@ class KwDatagrid {
       }
     }
     elseif ($this->persistant && $this->isStoredInSession("filters")) {
-      $this->activeFilters = kw_datagrid_retrieve_datagrid_data($this, "filters");
+      $this->activeFilters = $this->retrieveSessionData("filters");
     }
     // Génération du formulaire de filtrage
     if ($this->mode != "item") {
@@ -696,7 +704,9 @@ class KwDatagrid {
       $result = $query->execute();
       $orig_rows = array();
       $pattern = "/\:(\w+)/";
+      $i = $this->getCurrentPage() * $this->pager;
       foreach ($result as $key => $row) {
+        $i++;
         if ($this->mode != "item" && !is_null($this->key)) {
           $key = $row->{$this->key};
         }
@@ -748,6 +758,7 @@ class KwDatagrid {
             $rows[$key][$alias]["scope"] = "row";
             $rows[$key][$alias]["class"][] = "main-cell";
           }
+          $output = str_replace("!rank", $i, $output);
           $rows[$key][$alias]["data"] = $output;
         }
       }
@@ -853,133 +864,187 @@ class KwDatagrid {
       $this->emptyText = t("No results found matching your criteria. Try changing the filters values.");
     }
     // Déclaration des éléments envoyés à la fonction drupal_render
-    // ----------------------------------------------
-    // --------------- Mode item --------------------
-    // ----------------------------------------------
     if ($this->mode == "item" && !is_null($this->key)) {
-      if (!isset($this->mode_context["entity_type"])) {
-        $this->mode_context["entity_type"] = "node";
-      }
-      $title = NULL;
-      if (!empty($this->caption) || !empty($this->title)) {
-        $title = !empty($this->caption) ? $this->caption : $this->title;
-        if(count($this->activeFilters) > 0) {
-          $title .= " (". t("Filtered :") . " " . implode(" ", $this->appliedFilters) . ")";
-        }
-        if ($this->rank_result > 0) {
-          $title .= " - ". t("result !rank of !total",
-            array("!rank" => $this->rank_result, "!total" => $this->total_results));
-        }
-        else {
-          $title .= " - ". t("unmatched result");
-        }
-      }
-      $next = NULL;
-      $prev = NULL;
-      if ($this->total_results > 0) {
-        reset($orig_rows);
-        $ikey = $this->key;
-        foreach ($orig_rows as $key => $row) {
-          if ($row->$ikey == $this->mode_context["item_id"]) {
-            if (isset($rows[$key - 1])) {
-              $prev["rows"] = $rows[$key - 1];
-              $prev["link"] = $this->mode_context["entity_type"] . "/". $orig_rows[$key - 1]->$ikey;
-              $prev["label"] = $this->extraCaption["prev_label"];
-            }
-            if (isset($rows[$key + 1])) {
-              $next["rows"] = $rows[$key + 1];
-              $next["link"] = $this->mode_context["entity_type"] . "/". $orig_rows[$key + 1]->$ikey;
-              $next["label"] = $this->extraCaption["next_label"];
-            }
-            break;
-          }
-        }
-      }
-      foreach($this->columns as $key => $column) {
-        if (!$column["itemable"]) {
-          unset($prev["rows"][$key]);
-          unset($next["rows"][$key]);
-        }
-      }
-      $datagrid = array(
-        "#theme" => "datagrid_item_navigation",
-        "#title" => array(
-          "datagrid" => $title,
-          "node" => isset($this->linked_node) ? l($this->linked_node->title, "node/".$this->linked_node->nid) : NULL,
-          "custom" => isset($this->mode_context["title"]) ? $this->mode_context["title"] : NULL,
-          "list" => count($this->activeFilters) == 0 ?
-            l($this->extraCaption["backlink"], "node/" . $this->linked_node->nid,
-              array("fragment" => $this->id, "attributes" => array("class" => "back")))
-            : l($this->extraCaption["filtered_backlink"], "node/" . $this->linked_node->nid,
-              array("fragment" => $this->id, "attributes" => array("class" => "back"))) . " | ".
-              l($this->extraCaption["unfiltered_backlink"], "node/" . $this->linked_node->nid,
-              array("fragment" => $this->id, "query" => array("reset" => 1), "attributes" => array("class" => "back"))),
-          ),
-        "#next" => $next,
-        "#prev" => $prev
-      );
+      $datagrid = $this->buildModeItem($rows, $orig_rows);
     }
-    // ----------------------------------------------
-    // --------------- Mode list (et mass-edition) --
-    // ----------------------------------------------
+    elseif ($this->mode == 'mass-edition') {
+      $datagrid = $this->buildModeMassEdition($rows, $supercaption);
+    }
     else {
-      $datagrid = array(
-        "#prefix" => "<div id='" . $this->id . "' class='kw-datagrid'>",
-        "#suffix" => "</div>",
-        "#weight" => $this->weight
-      );
-      if ($this->titleMode != "caption") {
-        $datagrid["title"] = array(
-          "#markup" => (!empty($this->title) ? ("<" . $this->titleMode . ">" . $this->title . "</"
-            . (substr_count($this->titleMode, " ") == 0 ? $this->titleMode : substr($this->titleMode, 0, strpos($this->titleMode, " ", $needle))) . ">") : '')
-          . (empty($this->caption) ? theme('datagrid_supercaption', array('supercaption' => $supercaption)) : '')
-        );
-      }
-      if($this->mode == "mass-edition") {
-        $datagrid["form"] = array(
-          "#markup" => drupal_render(
-            drupal_get_form("kw_datagrid_mass_edit_form",
-              array("datagrid" => $this, "rows" => $rows)
-            )
-          )
-        );
-      }
-      else {
-        // TODO séparer en deux groupes les blocs supplémentaires et les trier
-        $before_blocks = $this->related_blocks;
-        if (!is_null($this->intro)) {
-          $datagrid["intro"] = array(
-            "#markup" => "<div class='datagrid-intro'>" . $this->intro . "</div>"
-          );
-        }
-        if (!empty($before_blocks)) {
-          foreach ($before_blocks as $bk => $block) {
-            $args = array($rows, $this->headers);
-            if (!empty($block['args'])) {
-              $args = array_merge($args, $block_args);
-            }
-            $block_content = call_user_func_array($block['function'], $args);
-            if (!empty($block_content)) {
-              $datagrid['before-block-' . $bk] = array("#markup" => $block_content);
-            }
-          }
-        }
-        if (!empty($this->caption) || $this->titleMode == 'caption') {
-          $this->caption = $supercaption;
-        }
-        $datagrid["grid"] = array(
-          "#theme" => "datagrid",
-          "#datagrid" => $this,
-          "#rows" => $rows
-        );
-        if (!is_null($this->outro)) {
-          $datagrid["outro"] = array(
-            "#markup" => "<div class='datagrid-outro'>" . $this->outro . "</div>"
-          );
-        }
-      }
+      $datagrid = $this->buildModeList($rows, $supercaption);
     }
     return $datagrid;
+  }
+
+  private function buildModeItem($rows, $orig_rows) {
+    if (!isset($this->mode_context["entity_type"])) {
+      $this->mode_context["entity_type"] = "node";
+    }
+    $title = NULL;
+    if (!empty($this->caption) || !empty($this->title)) {
+      $title = !empty($this->caption) ? $this->caption : $this->title;
+      if(count($this->activeFilters) > 0) {
+        $title .= " (". t("Filtered :") . " " . implode(" ", $this->appliedFilters) . ")";
+      }
+      if ($this->rank_result > 0) {
+        $title .= " - ". t("result !rank of !total",
+          array("!rank" => $this->rank_result, "!total" => $this->total_results));
+      }
+      else {
+        $title .= " - ". t("unmatched result");
+      }
+    }
+    $next = NULL;
+    $prev = NULL;
+    if ($this->total_results > 0) {
+      reset($orig_rows);
+      $ikey = $this->key;
+      foreach ($orig_rows as $key => $row) {
+        if ($row->$ikey == $this->mode_context["item_id"]) {
+          if (isset($rows[$key - 1])) {
+            $prev["rows"] = $rows[$key - 1];
+            $prev["link"] = $this->mode_context["entity_type"] . "/". $orig_rows[$key - 1]->$ikey;
+            $prev["label"] = $this->extraCaption["prev_label"];
+          }
+          if (isset($rows[$key + 1])) {
+            $next["rows"] = $rows[$key + 1];
+            $next["link"] = $this->mode_context["entity_type"] . "/". $orig_rows[$key + 1]->$ikey;
+            $next["label"] = $this->extraCaption["next_label"];
+          }
+          break;
+        }
+      }
+    }
+    foreach($this->columns as $key => $column) {
+      if (!$column["itemable"]) {
+        unset($prev["rows"][$key]);
+        unset($next["rows"][$key]);
+      }
+    }
+    $datagrid = array(
+      "#theme" => "datagrid_item_navigation",
+      "#title" => array(
+        "datagrid" => $title,
+        "node" => isset($this->linked_node) ? l($this->linked_node->title, "node/".$this->linked_node->nid) : NULL,
+        "custom" => isset($this->mode_context["title"]) ? $this->mode_context["title"] : NULL,
+        "list" => count($this->activeFilters) == 0 ?
+          l($this->extraCaption["backlink"], "node/" . $this->linked_node->nid,
+            array("fragment" => $this->id, "attributes" => array("class" => "back")))
+          : l($this->extraCaption["filtered_backlink"], "node/" . $this->linked_node->nid,
+            array("fragment" => $this->id, "attributes" => array("class" => "back"))) . " | ".
+            l($this->extraCaption["unfiltered_backlink"], "node/" . $this->linked_node->nid,
+            array("fragment" => $this->id, "query" => array("reset" => 1), "attributes" => array("class" => "back"))),
+        ),
+      "#next" => $next,
+      "#prev" => $prev
+    );
+    return $datagrid;
+  }
+
+  private function buildModeList($rows, $supercaption) {
+    $datagrid = array(
+      "#prefix" => "<div id='" . $this->id . "' class='kw-datagrid'>",
+      "#suffix" => "</div>",
+      "#weight" => $this->weight
+    );
+    if ($this->titleMode != "caption") {
+      $datagrid["title"] = array(
+        "#markup" => (!empty($this->title) ? ("<" . $this->titleMode . ">" . $this->title . "</"
+        . (substr_count($this->titleMode, " ") == 0 ? $this->titleMode : substr($this->titleMode, 0, strpos($this->titleMode, " ", $needle))) . ">") : '')
+        . (empty($this->caption) ? theme('datagrid_supercaption', array('supercaption' => $supercaption)) : '')
+      );
+    }
+    $before_blocks = array();
+    $after_blocks = array();
+    if (!empty($this->related_blocks) && !empty($rows)) {
+      foreach ($this->related_blocks as $key => $block) {
+        if ($block['position'] == 'after') {
+          $after_blocks[$block["weight"]][] = $block;
+        }
+        else {
+          $before_blocks[$block["weight"]][] = $block;
+        }
+      }
+      if (!empty($before_blocks)) {
+        $before_output = $this->buildBlocks('before-block', $before_blocks, $rows, $datagrid);
+      }
+      if (!empty($after_blocks)) {
+        $after_output = $this->buildBlocks('after-block', $after_blocks, $rows, $datagrid);
+      }
+    }
+    if (!is_null($this->intro)) {
+      $datagrid["intro"] = array(
+        "#markup" => "<div class='datagrid-intro'>" . $this->intro . "</div>"
+      );
+    }
+    if (!empty($before_blocks)) {
+      $datagrid = array_merge($datagrid, $before_output);
+    }
+    if (!empty($this->caption) || $this->titleMode == 'caption') {
+      $this->caption = $supercaption;
+    }
+    $datagrid["grid"] = array(
+      "#theme" => "datagrid",
+      "#datagrid" => $this,
+      "#rows" => $rows
+    );
+    if (!empty($after_blocks)) {
+      $datagrid = array_merge($datagrid, $after_output);
+    }
+    if (!is_null($this->outro)) {
+      $datagrid["outro"] = array(
+        "#markup" => "<div class='datagrid-outro'>" . $this->outro . "</div>"
+      );
+    }
+    return $datagrid;
+  }
+
+  private function buildModeMassEdition($rows, $supercaption) {
+    $datagrid = array(
+      "#prefix" => "<div id='" . $this->id . "' class='kw-datagrid'>",
+      "#suffix" => "</div>",
+      "#weight" => $this->weight
+    );
+    if ($this->titleMode != "caption") {
+      $datagrid["title"] = array(
+        "#markup" => (!empty($this->title) ? ("<" . $this->titleMode . ">" . $this->title . "</"
+          . (substr_count($this->titleMode, " ") == 0 ? $this->titleMode : substr($this->titleMode, 0, strpos($this->titleMode, " ", $needle))) . ">") : '')
+        . (empty($this->caption) ? theme('datagrid_supercaption', array('supercaption' => $supercaption)) : '')
+      );
+    }
+    $datagrid["form"] = array(
+      "#markup" => drupal_render(
+        drupal_get_form("kw_datagrid_mass_edit_form",
+          array("datagrid" => $this, "rows" => $rows)
+        )
+      )
+    );
+    return $datagrid;
+  }
+
+  private function buildBlocks($type, $blocks_array_group_by_weight, &$rows) {
+    $ouput = array();
+    ksort($blocks_array_group_by_weight);
+    foreach ($blocks_array_group_by_weight as $weight => $blocks_array) {
+      foreach ($blocks_array as $bk => $block) {
+        $block_id = $this->id . '-' . $type . $weight . '-' .$bk;
+        $args = array(&$rows, $this->headers, $block_id);
+        if (!empty($block['args'])) {
+          $args = array_merge($args, $block['args']);
+        }
+        $block_content = call_user_func_array($block['function'], $args);
+        $block_controls = array();
+        $block_output = theme('datagrid_block', array(
+          'title_tag' => $block['label_tag'],
+          'title' => !empty($block['label']) && $block['show_label'] ? $block['label'] : NULL,
+          'content' => $block_content,
+          'block_controls' => $block_controls,
+          'block_id' => $block_id
+        ));
+        $output[$type . '-' . $bk] = array("#markup" => $block_output);
+      }
+    }
+    return $output;
   }
 
   private function proceedArgsReplacement($name, $args, $row, $pattern) {
@@ -1016,7 +1081,7 @@ class KwDatagrid {
 
   function getCurrentSort() {
     // CAS 0 : on a déjà appelé la fonction...
-    if(!is_null($this->current_sort)) {
+    if (!is_null($this->current_sort)) {
       return $this->current_sort;
     }
     // CAS 2 : valeur envoyée par adresse
@@ -1024,13 +1089,17 @@ class KwDatagrid {
     if($order !== FALSE && in_array(abs($order), $this->sortables["id"])) {
       $this->current_sort = $order;
       if($this->persistant) {
-        $this->storeInSession("sort", $this->current_sort);
+        $old_sort = $this->retrieveSessionData('sort');
+        if ($old_sort != $order) {
+          $this->storeInSession("sort", $this->current_sort);
+          $this->current_page = 0;
+        }
       }
       return $this->current_sort;
     }
     // CAS 3 : valeur enregistrée en session
     if($this->persistant) {
-      $session_data = kw_datagrid_retrieve_datagrid_data($this, "sort");
+      $session_data = $this->retrieveSessionData("sort");
       if($session_data !== FALSE && in_array(abs($session_data),$this->sortables["id"])) {
         $this->current_sort = $session_data;
         return $this->current_sort;
@@ -1415,6 +1484,15 @@ class KwDatagrid {
     }
   }
 
+  public function retrieveSessionData($data) {
+    if (isset($_SESSION["kw_datagrid"][$this->getPool()][$data])) {
+      return $_SESSION["kw_datagrid"][$this->getPool()][$data];
+    }
+    elseif (isset($_SESSION["kw_datagrid"][$this->getId()][$data])) {
+      return $_SESSION["kw_datagrid"][$this->getId()][$data];
+    }
+  }
+
   private function isStoredInSession($var) {
     if(isset($_SESSION["kw_datagrid"][$this->pool][$var])) {
       return TRUE;
@@ -1457,7 +1535,7 @@ class KwDatagrid {
       $columns = $input;
     }
     elseif ($this->persistant) {
-      $columns = kw_datagrid_retrieve_datagrid_data($this, "columns");
+      $columns = $this->retrieveSessionData("columns");
     }
     elseif (isset($_GET["columns"])) {
       $columns = unserialize($_GET["columns"]);
@@ -1493,13 +1571,25 @@ class KwDatagrid {
     }
   }
 
-  public function addRelatedBlock($function, $args = array(), $position = 'before', $weight = 0) {
+  public function addRelatedBlock($function, $options = array()) {
+    $args =  isset($options['args']) && is_array($options['args']) ? $options['args'] : array();
+    $position =  isset($options['position']) && $options['position'] == 'after' ? 'after' : 'before';
+    $weight =  isset($options['weight']) && is_numeric($options['weight']) ? $options['weight'] : 0;
+    $label = !empty($options['label']) ? $options['label'] : NULL;
+    $show_label = !empty($options['label']) && (!isset($options['show_label']) || $options['show_label']) ? TRUE : FALSE;
+    $hideable = !empty($options['label']) && (!isset($options['hideable']) || $options['hideable']) ? TRUE : FALSE;
+    $label_tag = !empty($options['label_tag']) ? $options['label_tag'] : 'div';
     $this->related_blocks[] = array(
       'function' => $function,
       'args' => $args,
       'position' => $position,
-      'weight' => $weight
+      'weight' => $weight,
+      'hideable' => $hideable,
+      'show_label' => $show_label,
+      'label' => $label,
+      'label_tag' => $label_tag
     );
     return $this;
   }
+
 }
