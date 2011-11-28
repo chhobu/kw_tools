@@ -10,8 +10,6 @@
 .kw-datagrid .form-item .filter-mode {
   float: left;
   margin-right: 0.5em;}
-.kw-datagrid ul.pager {
-  margin: 0.5em;}
 .kw-datagrid-item {
   margin-top: 1em;
   border: 1px dashed #999;
@@ -48,6 +46,15 @@
 .kw-datagrid .block-content {
   border: 2px solid #000;
   margin-bottom: 0.5em;}
+.kw-datagrid .block-controls a.close-button {
+  float: right;
+  position: relative;
+  z-index: 999;
+  margin-top: -10px;
+  margin-right: 2px;}
+.kw-datagrid .block-controls a.close-button:hover img, .kw-datagrid .block-controls a.close-button:focus img {
+  -moz-transform: rotate(25deg);
+  transform: rotate(25deg);}
 html.js .kw-datagrid fieldset.collapsible fieldset .fieldset-legend {
   background-image: none;
   padding-left: inherit;}
@@ -59,3 +66,19 @@ td .digit {
   white-space: nowrap;}
 .rank {
   font-weight: bold;}
+.datagrid-pager, .datagrid-pager-choices {
+  margin: 0.5em 0 0;}
+.datagrid-pager ul.pager, .datagrid-pager-choices  ul.pager {
+  display: inline;}
+.datagrid-pager {
+  text-align: center;}
+.datagrid-pager-choices {
+  float: right;
+  border-top: 1px solid #999;
+  font-size: 90%;
+  padding-top: 0.5em;}
+.datagrid-pager-title, .datagrid-pager-choices-title {
+  color: #444444;
+  font-variant: small-caps;
+  display: inline;
+  padding-right: 0.5em;}

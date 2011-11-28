@@ -68,7 +68,7 @@ function kw_datagrid_theme($existing, $type, $theme, $path) {
       'file' => 'kw_datagrid.theme.inc'
     ),
     'datagrid_block' => array(
-      'variables' => array('block_id' => NULL, 'title_tag' => NULL, 'title' => NULL, 'content'=> NULL, 'block_controls' => NULL),
+      'variables' => array('datagrid' => NULL, 'block' => NULL, 'content'=> NULL),
       'file' => 'kw_datagrid.theme.inc'
     )
   );
@@ -83,23 +83,27 @@ function kw_datagrid_theme($existing, $type, $theme, $path) {
  * @param unknown_type $type
  */
 function kw_datagrid_response($type = "ajax") {
-  if ($type == 'ajax' && isset($_GET["grid"]) && !is_null($_GET["grid"])) {
-    if (isset($_SESSION["kw_datagrid"][$_GET["grid"]]["constructor"])) {
-      $constructor = $_SESSION["kw_datagrid"][$_GET["grid"]]["constructor"];
-    }
-    if(empty($constructor) || !is_array($constructor)) {
-      return;
-    }
-    $output = call_user_func_array($constructor["function"], $constructor["args"]);
-    $commands[] = ajax_command_replace('#' . $_GET["grid"], drupal_render($output));
+  if (!empty($_GET['_id'])) {
+    $constructor = KwDatagrid::retrieveConstructor($_GET['_id']);
+  }
+  if ($type == 'ajax' && !empty($constructor['function'])) {
+    $output = call_user_func_array($constructor["function"], is_null($constructor["args"]) ? array() : $constructor['args']);
+    $commands[] = ajax_command_replace('#' . $_GET["_id"], drupal_render($output));
     $page = array('#type' => 'ajax', '#commands' => $commands);
     ajax_deliver($page);
   }
-  else {
-    drupal_goto($_GET["page"], array(
-      "query" => drupal_get_query_parameters($_GET, array('q', 'page')),
-      "fragment" => $_GET["grid"]
+  elseif (!empty($constructor['page'])) {
+    drupal_goto($constructor['page'], array(
+      "query" => drupal_get_query_parameters(),
+      "fragment" => $_GET["_id"]
     ));
+  }
+  else {
+    if (!empty($constructor)) {
+      unset($_SESSION["kw_datagrid"][$_GET["_id"]]);
+    }
+    drupal_not_found();
+    die();
   }
 }
 
@@ -108,21 +112,26 @@ function kw_datagrid_response($type = "ajax") {
 // -------------------------------------------------
 
 function kw_datagrid_filter_form($form, &$form_state, $args) {
+  /* @var $datagrid  KwDatagrid */
   $datagrid = $args["datagrid"];
   $form["#attached"]["css"][] = drupal_get_path("module","kw_tools") . "/css/kw_form.css";
   $form["#attached"]["js"][] = drupal_get_path("module","kw_tools") . "/js/kw_form.js";
+  $parameters = $datagrid->transmitUrlParameters();
   $form["fieldset"] = array(
     "#type" => "fieldset",
     "#title" => "<span class='search'>".(count($datagrid->getFilters("aliases")) > 0 ? t("Filter results") : "")
-      . ((count($datagrid->getPagerOptions()) >0 || count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0)
+      . (($datagrid->hasSelectablesColumns() || ($datagrid->getPagerOptions('display') == 'form' && count($datagrid->getPagerOptions()) > 0) || count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0)
         ? (count($datagrid->getFilters("aliases")) > 0 ? " / " : "") . t("Display options") : "")."</span>",
     "#collapsible" => TRUE,
     "#prefix" => "<div id='" . $datagrid->getId() . "-form'>",
     "#suffix" => "</div>",
-    "#collapsed" => (isset($_GET["open"]) || isset($form_state["values"])) ? FALSE : TRUE
+    "#collapsed" => ((isset($_GET["_o"]) && isset($_GET["_id"]) && $_GET["_id"] == $datagrid->getId()) || isset($form_state["values"])) ? FALSE : TRUE
   );
   $test = $datagrid->getFilters("aliases");
   if (is_array($test) && count($test) > 0) {
+    if (isset($parameters['_f'])) {
+      unset($parameters['_f']);
+    }
     $filters = $datagrid->getFilters();
     $filter_options = array("-1" => t("-- Select a filter --"));
     $filters["label"] = array_map("strip_tags", $filters["label"]);
@@ -131,9 +140,9 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
     foreach($filters["id"] as $key => $filter_id) {
       $filter_options[$filter_id] = $filters["label"][$key];
     }
-    if (isset($form_state["values"])) {
+    if (!empty($form_state["input"]["_triggering_element_name"])) {
       $trigger = $form_state["input"]["_triggering_element_name"];
-      if ($form_state["values"]["filter-select"] > 0 && $trigger=="filter-select") {
+      if ($form_state["values"]["filter-select"] > 0 && $trigger == "filter-select") {
         $datagrid->addActiveFilter($form_state["values"]["filter-select"]);
         $form_state["input"]["filter-select"] = NULL;
       }
@@ -158,7 +167,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
       "#value" => t("Add"),
       "#name" => "add-filter",
       "#attributes" => array("class" => array("filter-select-button")),
-      "#limit_validation_errors" => array()
+      "#limit_validation_errors" => array(array('filter-select'))
     );
     $form["fieldset"]["filters"] = array();
     if(count($datagrid->getActiveFilters()) > 0) {
@@ -196,7 +205,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
                 "#type" => "select",
                 "#title" => $filters["label"][$filter],
                 "#default_value" => isset($form_state["input"]["filter-value"][$key]) ? $form_state["input"]["filter-value"][$key] : $activeFilter["value"],
-                "#options" => array_map("strip_tags",$filters["options"][$filter]["choices"]),
+                "#options" => array('' => '---' . t("Select a value") . '---') + array_map("strip_tags", $filters["options"][$filter]["choices"]),
                 "#name" => "filter-value[" . $key . "]"
               );
               break;
@@ -219,7 +228,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
             }
         }
         $op_options = kw_datagrid_get_operators($filters["type"][$filter]);
-        if ($i>0) {
+        if ($i > 0) {
           $form["fieldset"]["filters"][$key]["filter-mode-" . $key] = array(
             "#type" => "select",
             "#options" => $mode_options,
@@ -256,6 +265,9 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
     }
   }
   if ($datagrid->hasSelectablesColumns()) {
+    if (isset($parameters['_c'])) {
+      unset($parameters['_c']);
+    }
     $form["fieldset"]["columns"] = array(
       "#type" => "checkboxes",
       "#title" => t("Display columns"),
@@ -264,7 +276,28 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
       "#attributes" => array("class" => array("multiselect-widget"))
     );
   }
+  if (count($datagrid->getConfigurableBlocks()) > 0) {
+    if (isset($parameters['_b'])) {
+      unset($parameters['_b']);
+    }
+    $options = array();
+    $blocks = $datagrid->getConfigurableBlocks();
+    foreach ($blocks as $key => $block) {
+      $options[$key] = $block['title'];
+    }
+    $selectedBlocks = $datagrid->retrieveSelectedBlocks();
+    $default = ($selectedBlocks === FALSE ? $datagrid->getDefaultBlocks() : $selectedBlocks);
+    $form["fieldset"]["blocks"] = array(
+      "#type" => "checkboxes",
+      "#title" => t("Display related blocks"),
+      "#options" => $options,
+      "#default_value" => empty($default) ? array() : $default
+    );
+  }
   if (count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0) {
+    if (isset($parameters['_s'])) {
+      unset($parameters['_s']);
+    }
     $sortables = $datagrid->getSortables();
     $options = array();
     $sortables["label"] = array_map("strip_tags", $sortables["label"]);
@@ -281,7 +314,10 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
       "#options" => $options
     );
   }
-  if (count($datagrid->getPagerOptions()) > 0) {
+  if ($datagrid->getPagerOptions('display') == 'form' && count($datagrid->getPagerOptions()) > 0) {
+    if (isset($parameters['_g'])) {
+      unset($parameters['_g']);
+    }
     $options = array();
     $values = $datagrid->getPagerOptions();
     if (!in_array($datagrid->getPager(), $values)) {
@@ -311,15 +347,13 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
   $form["fieldset"]["reset"] = array(
     "#type" => "submit",
     "#value" => t("Default values"),
-    "#name" => "reset-filters"
+    "#name" => "reset-filters",
+    "#submit" => array("kw_datagrid_filter_form_reset")
   );
-  $form["p"] = array(
-    "#type" => "hidden",
-    "#default_value" => $datagrid->getCurrentPage()
-  );
-  if (isset($_GET["page"])) {
-    $form["#action"] = "/".$_GET["page"];
-  }
+  $constructor_params = $datagrid->getConstructor('parameters');
+  $form["#action"] = url($datagrid->getConstructor('page'), array(
+    'query' => array_merge(is_null($constructor_params) ? array() : $constructor_params, $parameters)
+  ));
   return $form;
 }
 
@@ -345,70 +379,80 @@ function kw_datagrid_filter_ajax_callback($form, $form_state) {
 function kw_datagrid_filter_form_submit($form, &$form_state) {
   $datagrid = $form_state["build_info"]["args"][0]["datagrid"];
   $button = $form_state["clicked_button"]["#name"];
-  if (isset($form_state["input"]["apply-filters"]) || isset($form_state["input"]["add-filter"])
-  || isset($form_state["input"]["filter-remove"]) || substr($button, 0,strlen("filter-remove")) == "filter-remove") {
-    if (substr($button, 0,strlen("filter-remove")) == "filter-remove") {
-      $key = substr($button, strlen("filter-remove"));
-      $key = substr($key, 1, strlen($key)-2);
-      $datagrid->removeActiveFilter($key);
-      $form_state['rebuild'] = TRUE;
-    }
-    else if (isset($form_state["input"]["filter-remove"])) {
-      $datagrid->removeActiveFilter(key($form_state["input"]["filter-remove"]));
-      $form_state['rebuild'] = TRUE;
-    }
-    else if (isset($form_state["input"]["filter-select"]) && $form_state["input"]["filter-select"] > 0) {
-      $datagrid->addActiveFilter($form_state["input"]["filter-select"]);
-    }
-    foreach($datagrid->getActiveFilters() as $key => $activeFilter) {
-      $filter_mode = NULL;
-      $filter_value = NULL;
-      $filter_op = NULL;
-      if(isset($form_state["input"]["filter-mode"][$key])) {
-        $filter_mode = $form_state["input"]["filter-mode"][$key];
-      }
-      if(isset($form_state["input"]["filter-value"][$key])) {
-        $filter_value = $form_state["input"]["filter-value"][$key];
-      }
-      if(isset($form_state["input"]["filter-op"][$key])) {
-        $filter_op = $form_state["input"]["filter-op"][$key];
-      }
-      $datagrid->alterActiveFilter($key, $filter_mode, $filter_op, $filter_value);
-    }
-    if (isset($form_state["input"]["columns"]) && is_array($form_state["input"]["columns"])) {
-      $columns = array();
-      foreach ($form_state["input"]["columns"] as $column) {
-        if (!is_null($column) && $column != "") {
-          $columns[] = $column;
-        }
-      }
-      $datagrid->storeSelectedColumns($columns);
-    }
-    $query = array(
-      "grid" => $datagrid->getId(),
-      "sort" => isset($form_state["input"]["sort"]) ? $form_state["input"]["sort"] : NULL,
-      "pager" => $form_state["input"]["pager"],
-      "p" => $form_state["input"]["p"],
-      "open" => TRUE,
-      "filters" => serialize($datagrid->getActiveFilters())
-    );
-    if ($datagrid->hasSelectablesColumns()) {
-      $query["columns"] = serialize($datagrid->retrieveSelectedColumns(isset($columns) ? $columns : NULL));
-    }
-    $form_state["redirect"] = array(isset($_GET["page"]) ? $_GET["page"] : $_GET["q"],
-      array("query" => $query));
+  $values = $form_state["input"];
+  if (substr($button, 0,strlen("filter-remove")) == "filter-remove") {
+    $key = substr($button, strlen("filter-remove"));
+    $key = substr($key, 1, strlen($key)-2);
+    $datagrid->removeActiveFilter($key);
+    $form_state['rebuild'] = TRUE;
   }
-  else {
-    $datagrid->reset('all');
+  else if (isset($values["filter-remove"])) {
+    $datagrid->removeActiveFilter(key($values["filter-remove"]));
+    $form_state['rebuild'] = TRUE;
   }
+  else if (isset($values["filter-select"]) && $values["filter-select"] > 0) {
+    $datagrid->addActiveFilter($values["filter-select"]);
+  }
+  foreach ($datagrid->getActiveFilters() as $key => $activeFilter) {
+    $filter_mode = NULL;
+    $filter_value = NULL;
+    $filter_op = NULL;
+    if(isset($values["filter-mode"][$key])) {
+      $filter_mode = $values["filter-mode"][$key];
+    }
+    if(isset($values["filter-value"][$key])) {
+      $filter_value = $values["filter-value"][$key];
+    }
+    if(isset($values["filter-op"][$key])) {
+      $filter_op = $values["filter-op"][$key];
+    }
+    $datagrid->alterActiveFilter($key, $filter_mode, $filter_op, $filter_value);
+  }
+  $query = $datagrid->transmitUrlParameters();
+  if (isset($values["columns"]) && is_array($values["columns"])) {
+    $columns = array();
+    foreach ($values["columns"] as $column) {
+      if (!is_null($column) && $column != "") {
+        $columns[] = $column;
+      }
+    }
+    $datagrid->storeSelectedColumns($columns);
+    $query['_c'] = $datagrid->retrieveSelectedColumns($columns, TRUE);
+  }
+  if (isset($values["blocks"]) && is_array($values["blocks"])) {
+    $blocks = array();
+    foreach ($values["blocks"] as $block) {
+      if (!is_null($block) && $block != "") {
+        $blocks[] = $block;
+      }
+    }
+    $datagrid->storeSelectedBlocks($blocks);
+    $query['_b'] = $datagrid->retrieveSelectedBlocks($blocks, TRUE);
+  }
+  if (isset($values["sort"])) {
+    $query['_s'] = $values["sort"];
+  }
+  if (isset($values["pager"])) {
+    $query['_g'] = $values["pager"];
+  }
+  $query['_o'] = 1;
+  $form_state["redirect"] = array($datagrid->getConstructor('page'),
+    array("query" => $query));
+}
+
+function kw_datagrid_filter_form_reset($form, &$form_state) {
+  $datagrid = $form_state["build_info"]["args"][0]["datagrid"];
+  $datagrid->reset('all');
+  $form_state["redirect"] = array($datagrid->getConstructor('page'),
+    array("query" => $datagrid->getConstructor('parameters')));
 }
 
 function kw_datagrid_get_enum_choices($filters, $filter) {
   if (isset($filters["options"][$filter]["choices"])) {
-    $choices = $filters["options"][$filter]["choices"];
+    $choices = array('' => '---' . t("Select a value") . '---') + $filters["options"][$filter]["choices"];
   }
   elseif (isset($filters["options"][$filter]["query"])) {
-    $choices = array();
+    $choices = array('' => '---' . t("Select a value") . '---');
     $choices_query = db_query($filters["options"][$filter]["query"],
       isset($filters["options"][$filter]["query_args"]) ? $filters["options"][$filter]["query_args"] : array()
     );
@@ -418,6 +462,7 @@ function kw_datagrid_get_enum_choices($filters, $filter) {
   }
   else {
     $choices = array(
+      "" => '---' . t("Select yes or no") . '---',
       "0" => t("No"),
       "1" => t("Yes")
     );

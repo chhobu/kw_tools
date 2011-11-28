@@ -83,7 +83,7 @@ function theme_datagrid($variables) {
       $ts['name'] = $aliases[0];
       $ts['sort'] = $sort > 0 ? "asc" : "desc";
     }
-    $ts['query'] = drupal_get_query_parameters($_GET, array('q', 'sort', 'grid', 'page', 'open'));
+    $ts['query'] = $datagrid->transmitUrlParameters();
     $head_output .= '<tr>';
     foreach ($header as $column_key => $cell) {
       $cell = kw_datagrid_tablesort_header($datagrid, $column_key, $cell, $header, $ts);
@@ -95,7 +95,7 @@ function theme_datagrid($variables) {
       if (isset($columns[$column_key]["modifiable"]) && $columns[$column_key]["modifiable"]) {
         $title = strip_tags(t("Mass modification of !item data", array("!item" => strip_tags($cell["data"]))));
         $cell["data"] .= l("<img src='/misc/configure.png' alt=\"" . $title . "\" title=\"" . $title . "\" />",
-          isset($_GET["page"]) ? $_GET["page"] : $_GET["q"], array("html" => TRUE, "query" => array("grid" => $datagrid->getId(), "mass_edit" => $column_key), "fragment" => $datagrid->getId()));
+          $datagrid->getConstructor('page'), array("html" => TRUE, "query" => array("_id" => $datagrid->getId(), "mass_edit" => $column_key), "fragment" => $datagrid->getId()));
       }
       $head_output .= _theme_table_cell($cell, TRUE);
     }
@@ -149,20 +149,85 @@ function theme_datagrid($variables) {
   }
   $footer_output = "";
   if ($datagrid->getPager() > 0) {
-    $footer_output .= "<tr><td colspan='" . $nb_cols . "'>"
-      . theme("datagrid_pager", array("datagrid" => $datagrid))
-      ."</td></tr>";
+    $pager_output = theme("datagrid_pager", array("datagrid" => $datagrid));
+    if (!empty($pager_output)) {
+      $pager_output = str_replace(
+        array('<h3>', '</h3>'),
+        array('<div class="datagrid-pager-title">', '</div>'),
+        $pager_output
+      );
+      $footer_output .= "<div class='datagrid-pager'>" . $pager_output . "</div>";
+    }
+  }
+  $choices = $datagrid->getPagerOptions('choices');
+  $parameters = $datagrid->transmitUrlParameters();
+  if ($datagrid->getPagerOptions('display') == 'buttons' && count($choices) > 0) {
+    $items = array();
+    $all = FALSE;
+    sort($choices);
+    foreach ($choices as $choice) {
+      if ($choice == 0) {
+        $all = TRUE;
+        continue;
+      }
+      elseif ($choice >= $datagrid->getTotalResults() && $choice != $datagrid->getPager()) {
+        continue;
+      }
+      if ($choice == $datagrid->getPager()) {
+        $items[$choice] = array(
+          'class' => array('pager-current'),
+          'data' => $choice
+        );
+      }
+      else {
+        $parameters['_g'] = $choice;
+        $items[$choice] = array(
+          'class' => array('pager-choices'),
+          'data' => theme('datagrid_pager_link', array(
+            'text' => $choice,
+            'page_new' => $datagrid->getCurrentPage(),
+            'datagrid' => $datagrid,
+            'parameters' => $parameters,
+            'attributes' => array('class' => array('pager-item'))
+          ))
+        );
+      }
+    }
+    if ($all && ($datagrid->getTotalResults() > $datagrid->getPager() || $datagrid->getPager() == 0)) {
+      $parameters['_g'] = 0;
+      $items[0]['class'][] = 'pager-choices-all';
+      if ($datagrid->getPager() == 0) {
+        $items[0]['class'][] = 'pager-current';
+        $items[0]['data'] = t('All');
+      }
+      else {
+        $items[0]['data'] = theme('datagrid_pager_link', array(
+          'text' => t('All'),
+          'page_new' => $datagrid->getCurrentPage(),
+          'datagrid' => $datagrid,
+          'parameters' => $parameters,
+          'attributes' => array('class' => array('pager-item'))
+        ));
+      }
+    }
+    if (count($items) > 1) {
+      $pager_choices = "<div class='datagrid-pager-choices'>" . theme('item_list', array(
+        'items' => $items,
+        'title' => t('Results per page :'),
+        'type' => 'ul',
+        'attributes' => array('class' => array('pager'))
+      )) . "</div>";
+      $footer_output .= str_replace(
+        array('<h3>', '</h3>'),
+        array('<div class="datagrid-pager-choices-title">', '</div>'),
+        $pager_choices
+      );
+    }
   }
   if($footer_output != "") {
-    $output .= "<tfoot>" . $footer_output . "</tfoot>";
+    $output .= "<tfoot><tr><td colspan='" . $nb_cols . "'>" . $footer_output . "</td></tr></tfoot>";
   }
   $output .= "</table>\n";
-  $form = $datagrid->buildForm();
-  if (!is_null($form) && ($datagrid->getUnfilteredTotalResults() > 1 || ($datagrid->getUnfilteredTotalResults() > 0 && $datagrid->hasSelectablesColumns()))) {
-    $output .= "<div class='datagrid-filters'>"
-      . drupal_render($form)
-      ."</div>";
-  }
   return $output;
 }
 
@@ -180,16 +245,14 @@ function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header
       // If the user clicks a different header, we want to sort ascending initially.
       $image = '';
     }
-    $cell['data'] = l($cell['data'] . $image, "kw_datagrid/nojs/",
+    $cell['data'] = l($cell['data'] . $image, $datagrid->getPath(),
       array(
         'attributes' => array(
           'title' => $title,
           'class' => array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'sortable')
         ),
         'query' => array_merge($ts['query'], array(
-          'grid' => $datagrid->getId(),
-          'page' => isset($_GET["page"]) ? $_GET["page"] : $_GET["q"],
-          'sort' => $sortKey == $currentSort ? -$sortKey : $sortKey
+          '_s' => $sortKey == $currentSort ? -$sortKey : $sortKey
         )),
         'fragment' => $datagrid->getId(),
         'html' => TRUE
@@ -208,8 +271,8 @@ function theme_datagrid_pager($variables) {
   }
   $pager_total = $datagrid->getTotalResults();
   $current_page = $datagrid->getCurrentPage();
-  $parameters = drupal_get_query_parameters($_GET, array('q', 'grid', 'page', 'p', 'open'));
-  $quantity = $datagrid->getPagerQuantity();
+  $parameters = $datagrid->transmitUrlParameters();
+  $quantity = $datagrid->getPagerOptions('quantity');
   // Calculate various markers within this pager piece:
   // Middle is used to "center" pages around the current page.
   $pager_middle = ceil($quantity / 2);
@@ -301,7 +364,12 @@ function theme_datagrid_pager($variables) {
         'data' => $li_last,
       );
     }
-    return '<h3 class="element-invisible">' . t('Pages') . '</h3>' . theme('item_list', array('items' => $items, 'title' => NULL, 'type' => 'ul', 'attributes' => array('class' => array('pager'))));
+    return theme('item_list', array(
+      'items' => $items,
+      'title' => t('Pages :'),
+      'type' => 'ul',
+      'attributes' => array('class' => array('pager'))
+    ));
   }
 }
 
@@ -401,9 +469,7 @@ function theme_datagrid_pager_link($variables) {
   $datagrid = $variables['datagrid'];
   $parameters = $variables['parameters'];
   $attributes = $variables['attributes'];
-  $parameters['p'] = $page_new;
-  $parameters['page'] = isset($_GET["page"]) ? $_GET["page"] : $_GET["q"];
-  $parameters['grid'] = $datagrid->getId();
+  $parameters['_p'] = $page_new;
   // Set each pager link title
   if (!isset($attributes['title'])) {
     static $titles = NULL;
@@ -425,7 +491,7 @@ function theme_datagrid_pager_link($variables) {
   if($datagrid->isUsingAjax()) {
     $attributes["class"][] = "use-ajax";
   }
-  return l($text, "kw_datagrid/nojs/", array(
+  return l($text, $datagrid->getPath(), array(
     'attributes' => $attributes,
     'query' => $parameters,
     'fragment' => $datagrid->getId()
@@ -536,17 +602,38 @@ function theme_datagrid_supercaption($variables) {
 }
 
 function theme_datagrid_block($variables) {
-  $title = $variables["title"];
-  $block_controls = $variables["block_controls"];
+  $block = $variables["block"];
   $content = $variables["content"];
-  $title_tag = $variables["title_tag"];
-  $block_id = $variables["block_id"];
+  /* @var $datagrid  KwDatagrid */
+  $datagrid = $variables["datagrid"];
   if (empty($content)) {
     return;
   }
-  $output = "<div id='" . $block_id . "'>";
-  if (!empty($title)) {
-    $output .= "<" . $title_tag . " class='block-title'>" . $title . "</" . $title_tag . ">";
+  $output = "<div id='" . $block['html_id'] . "' class='" . strtolower($block['id']) . "'>";
+  if (!empty($block['title']) && $block['show_title']) {
+    $output .= "<" . $block['title_tag'] . " class='block-title'>" . $block['title'] . "</" . $block['title_tag'] . ">";
+  }
+  if ($block['hideable']) {
+    $output .= "<div class='block-controls'>";
+    $parameters = $datagrid->transmitUrlParameters();
+    $blocks = $datagrid->retrieveSelectedBlocks();
+    if (!empty($blocks) && in_array($block['id'], $blocks)) {
+      unset($blocks[array_search($block['id'], $blocks)]);
+      $datagrid->storeSelectedBlocks($blocks);
+      $parameters['_b'] = $datagrid->retrieveSelectedBlocks($blocks, TRUE);
+    }
+    else {
+      $parameters['_b'] = '';
+    }
+    $output .= l('<img src="/' . drupal_get_path('module', 'kw_datagrid')
+      . '/img/close-icon3.png" alt="' . $block['close_label'] . '" title="' . $block['close_label'] . '" />',
+      $datagrid->getPath(), array(
+        'attributes' => array('class' => array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'close-button')),
+        'query' => $parameters,
+        'fragment' => $datagrid->getId(),
+        'html' => TRUE
+    ));
+    $output .= "</div>";
   }
   $output .= "<div class='block-content'>" . $content . "</div>";
   $output .= "</div>";

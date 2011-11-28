@@ -1,0 +1,45 @@
+<?php
+function kw_datagrid_schema() {
+  $schema = array();
+  $schema['kw_datagrid'] = array(
+    'fields' => array(
+      'datagrid_id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 100
+      ),
+      'function' => array(
+        'type' => 'varchar',
+        'length' => 255
+      ),
+      'args' => array(
+        'type' => 'text',
+        'length' => 1000
+      ),
+      'page' => array(
+        'type' => 'varchar',
+        'length' => 255
+      ),
+      'parameters' => array(
+        'type' => 'text',
+        'length' => 1000
+      )
+    ),
+    'primary key' => array('datagrid_id'),
+    'indexes' => array(
+      'datagrid_name' => array('name')
+    )
+  );
+  return $schema;
+}
+
+function kw_datagrid_update_7000() {
+  $ret = array();
+  $schema = kw_datagrid_schema();
+  db_create_table('kw_datagrid', $schema['kw_datagrid']);
+  return $ret;
+}
