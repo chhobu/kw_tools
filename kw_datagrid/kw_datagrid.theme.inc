@@ -147,7 +147,7 @@ function theme_datagrid($variables) {
     }
     $output .= "</tbody>\n";
   }
-  $footer_output = "";
+  $footer_output_part_one = "";
   if ($datagrid->getPager() > 0) {
     $pager_output = theme("datagrid_pager", array("datagrid" => $datagrid));
     if (!empty($pager_output)) {
@@ -156,12 +156,13 @@ function theme_datagrid($variables) {
         array('<div class="datagrid-pager-title">', '</div>'),
         $pager_output
       );
-      $footer_output .= "<div class='datagrid-pager'>" . $pager_output . "</div>";
+      $footer_output_part_one .= "<div class='datagrid-pager'>" . $pager_output . "</div>";
     }
   }
+  $footer_output_part_two = '';
   $choices = $datagrid->getPagerOptions('choices');
   $parameters = $datagrid->transmitUrlParameters();
-  if ($datagrid->getPagerOptions('display') == 'buttons' && count($choices) > 0) {
+  if (($datagrid->getPagerOptions('display') == 'advanced' || $datagrid->getFormDisplay() == 'advanced') && count($choices) > 0) {
     $items = array();
     $all = FALSE;
     sort($choices);
@@ -211,21 +212,27 @@ function theme_datagrid($variables) {
       }
     }
     if (count($items) > 1) {
-      $pager_choices = "<div class='datagrid-pager-choices'>" . theme('item_list', array(
+      $pager_choices = "<div class='datagrid-pager-choices datagrid-advanced-control'>" . theme('item_list', array(
         'items' => $items,
         'title' => t('Results per page :'),
         'type' => 'ul',
         'attributes' => array('class' => array('pager'))
       )) . "</div>";
-      $footer_output .= str_replace(
+      $footer_output_part_two .= str_replace(
         array('<h3>', '</h3>'),
         array('<div class="datagrid-pager-choices-title">', '</div>'),
         $pager_choices
       );
     }
   }
-  if($footer_output != "") {
-    $output .= "<tfoot><tr><td colspan='" . $nb_cols . "'>" . $footer_output . "</td></tr></tfoot>";
+  if ($datagrid->getFormDisplay() != 'standard') {
+    $footer_output_part_two .= theme('datagrid_advanced_controls', array('datagrid' => $datagrid));
+  }
+  if (!empty($footer_output_part_one) || !empty($footer_output_part_two)) {
+    $output .= "<tfoot><tr><td colspan='" . $nb_cols . "'>"
+    . (!empty($footer_output_part_one) ? $footer_output_part_one : '')
+    . (!empty($footer_output_part_two) ? '<div class="datagrid-controls">' . $footer_output_part_two . '</div>' : '')
+    . "</td></tr></tfoot>";
   }
   $output .= "</table>\n";
   return $output;
@@ -252,7 +259,8 @@ function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header
           'class' => array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'sortable')
         ),
         'query' => array_merge($ts['query'], array(
-          '_s' => $sortKey == $currentSort ? -$sortKey : $sortKey
+          '_s' => $sortKey == $currentSort ? -$sortKey : $sortKey,
+          '_p' => 0
         )),
         'fragment' => $datagrid->getId(),
         'html' => TRUE
@@ -637,5 +645,238 @@ function theme_datagrid_block($variables) {
   }
   $output .= "<div class='block-content'>" . $content . "</div>";
   $output .= "</div>";
+  return $output;
+}
+
+function theme_datagrid_advanced_controls($variables) {
+  $output = '';
+  /* @var $datagrid  KwDatagrid */
+  $datagrid = $variables['datagrid'];
+  $parameters = $datagrid->transmitUrlParameters();
+  $panel = '';
+  $has_filters = FALSE;
+  $has_custom_pager = FALSE;
+  $has_custom_sort = FALSE;
+  $has_custom_columns = FALSE;
+  $has_custom_blocks = FALSE;
+  if ($datagrid->getUnfilteredTotalResults() > 1) {
+    // Filtres
+    $test = $datagrid->getFilters("aliases");
+    $classes = array('datagrid-button');
+    if ($datagrid->isUsingAjax()) {
+      $classes[] = 'use-ajax';
+    }
+    if (is_array($test) && count($test) > 0) {
+      $output .= "<div class='datagrid-advanced-control datagrid-filters'>";
+      $filters_toogle_parameters = $parameters;
+      $filters = $datagrid->getActiveFilters();
+      $has_filters = count($filters) > 0;
+      if ((isset($parameters['_o']) && $parameters['_o'] == 'f') || (!isset($parameters['_o']) && $has_filters)) {
+        unset($filters_toogle_parameters['_o']);
+        $classes[] = 'activated';
+        $output .= l(t('Hide filter panel'), $datagrid->getPath(), array(
+            'query' => $filters_toogle_parameters,
+            'attributes' => array('class' => $classes)
+        ));
+        $panel = drupal_render($datagrid->buildFilterForm());
+      }
+      else {
+        $filters_toogle_parameters['_o'] = 'f';
+        $output .= l(t('Show filter panel'), $datagrid->getPath(), array(
+            'query' => $filters_toogle_parameters,
+            'attributes' => array('class' => $classes)
+        ));
+      }
+      $output .= "</div>";
+    }
+    // Tris
+    if (count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0) {
+      if ($datagrid->getCurrentSort() != $datagrid->getDefaultOrderIndex()) {
+        $has_custom_sort = TRUE;
+      }
+      $output .= "<div class='datagrid-advanced-control datagrid-sorts'>";
+      $sort_toogle_parameters = $parameters;
+      $classes = array('datagrid-button');
+      if ($datagrid->isUsingAjax()) {
+        $classes[] = 'use-ajax';
+      }
+      if (isset($parameters['_o']) && $parameters['_o'] == 's') {
+        unset($sort_toogle_parameters['_o']);
+        $classes[] = 'activated';
+        $output .= l(t('Hide sort panel'), $datagrid->getPath(), array(
+            'query' => $sort_toogle_parameters,
+            'attributes' => array('class' => $classes),
+        ));
+        $sortables = $datagrid->getSortables();
+        $rows = array();
+        foreach ($sortables['id'] as $key => $value) {
+          $row = array();
+          $classes = array();
+          $label = $sortables['label'][$key];
+          $row[] = array('data' => $label);
+          $classes[] = 'datagrid-button';
+          if ($datagrid->isUsingAjax()) {
+            $classes[] = 'use-ajax';
+          }
+          $asc_classes = $desc_classes = $classes;
+          $asc_parameters = $desc_parameters = $parameters;
+          if ($datagrid->getCurrentSort() == $value) {
+            $asc_classes[] = 'activated';
+          }
+          elseif ($datagrid->getCurrentSort() == -$value) {
+            $desc_classes[] = 'activated';
+          }
+          $asc_parameters['_s'] = $value;
+          $asc_parameters['_p'] = 0;
+          $asc_link = l(t('Ascending'), $datagrid->getPath(), array(
+              'query' => $asc_parameters,
+              'attributes' => array('class' => $asc_classes, 'title' => t('Sort by !name ascending', array('!name' => $label))),
+              'fragment' => $datagrid->getId()
+          ));
+          $desc_parameters['_s'] = -$value;
+          $desc_parameters['_p'] = 0;
+          $desc_link = l(t('Descending'), $datagrid->getPath(), array(
+              'query' => $desc_parameters,
+              'attributes' => array('class' => $desc_classes, 'title' => t('Sort by !name descending', array('!name' => $label))),
+              'fragment' => $datagrid->getId()
+          ));
+          $row[] = array('data' => $asc_link . ' | '. $desc_link);
+          $rows[] = $row;
+        }
+        $header = array(t('Sort parameter'), t('Sort order'));
+        $panel = theme('table', array('header' => $header, 'rows' => $rows, 'sticky' => FALSE));
+      }
+      else {
+        $sort_toogle_parameters['_o'] = 's';
+        $output .= l(t('Show sort panel'), $datagrid->getPath(), array(
+            'query' => $sort_toogle_parameters,
+            'attributes' => array('class' => $classes)
+        ));
+      }
+      $output .= "</div>";
+    }
+  }
+  // Sélection des colonnes
+  if ($datagrid->hasSelectablesColumns() && $datagrid->getUnfilteredTotalResults() > 0) {
+    $output .= "<div class='datagrid-advanced-control datagrid-columns'>";
+    $columns_toogle_parameters = $parameters;
+    $classes = array('datagrid-button');
+    if ($datagrid->isUsingAjax()) {
+      $classes[] = 'use-ajax';
+    }
+    $selected = $datagrid->listSelectedColumns(FALSE);
+    if (array_keys($selected) != $datagrid->getDefaultColumns()) {
+      $has_custom_columns = TRUE;
+    }
+    if (isset($parameters['_o']) && $parameters['_o'] == 'c') {
+      $columns_toogle_parameters['_o'] = '';
+      $classes[] = 'activated';
+      $output .= l(t('Hide columns panel'), $datagrid->getPath(), array(
+          'query' => $columns_toogle_parameters,
+          'attributes' => array('class' => $classes)
+      ));
+      $columns = $datagrid->listSelectableColumns();
+      $header = array(
+        array('data' => t('Column')),
+        array('data' => t('Action'))
+      );
+      $rows = array();
+      foreach ($columns as $key => $column) {
+        $row = array();
+        //$row[] = array('data' => $column);
+        $row[] = $column;
+        $columns_parameters = $parameters;
+        $classes = array();
+        $classes[] = 'datagrid-button';
+        if ($datagrid->isUsingAjax()) {
+          $classes[] = 'use-ajax';
+        }
+        if (isset($selected[$key])) {
+          $classes[] = 'activated';
+          $columns_link = $selected;
+          unset($columns_link[$key]);
+          $columns_parameters['_c'] = $datagrid->retrieveSelectedColumns(array_keys($columns_link), TRUE);
+          $label = t('Hide');
+        }
+        else {
+          $columns_link = array_keys($selected);
+          $columns_link[] = $key;
+          $columns_parameters['_c'] = $datagrid->retrieveSelectedColumns($columns_link, TRUE);
+          $label = t('Display');
+        }
+        $action = l($label, $datagrid->getPath(), array(
+            'query' => $columns_parameters,
+            'attributes' => array('class' => $classes)
+        ));
+        //$row[] = array('data' => $action);
+        $row[] = $action;
+        $rows[] = implode(' : ', $row);
+        //$rows[] = $row;
+      }
+      $panel = theme('item_list', array('items' => $rows, 'attributes' => array('class' => 'inline')));
+      //$panel = theme('table', array('header' => $header, 'rows' => $rows, 'sticky' => FALSE));
+    }
+    else {
+      $columns_toogle_parameters['_o'] = 'c';
+      $output .= l(t('Show columns panel'), $datagrid->getPath(), array(
+          'query' => $columns_toogle_parameters,
+          'attributes' => array('class' => $classes)
+      ));
+    }
+    $output .= "</div>";
+  }
+  // Affichage des blocs
+  if (count($datagrid->getConfigurableBlocks()) > 0 && $datagrid->getUnfilteredTotalResults() > 0) {
+    $output .= "<div class='datagrid-advanced-control datagrid-blocks'>";
+    $current_blocks = $datagrid->retrieveSelectedBlocks();
+    if ($current_blocks  !== FALSE && $current_blocks != $datagrid->getDefaultBlocks()) {
+      $has_custom_blocks = TRUE;
+    }
+    if (empty($current_blocks[0])) {
+      unset($current_blocks[0]);
+    }
+    foreach ($datagrid->getConfigurableBlocks() as $key => $block) {
+      $block_parameters = $parameters;
+      if ($block['hidden']) {
+        $current_blocks[] = $block['id'];
+        $block_parameters['_b'] = implode(';', $current_blocks);
+        $output .= l($block['open_label'], $datagrid->getPath(), array(
+            'query' => $block_parameters,
+            'fragment' => $block['html_id'],
+            'attributes' => array('class' => array('datagrid-button'))
+        ));
+      }
+      else if ($block['hideable']) {
+        if (!empty($current_blocks)) {
+          unset($current_blocks[array_search($block['id'], $current_blocks)]);
+          $block_parameters['_b'] = implode(';', $current_blocks);
+        }
+        else {
+          $block_parameters['_b'] = '';
+        }
+        $output .= l($block['close_label'], $datagrid->getPath(), array(
+            'query' => $block_parameters,
+            'fragment' => $datagrid->getId(),
+            'attributes' => array('class' => array('datagrid-button', 'activated', $datagrid->isUsingAjax() ? 'use-ajax' : NULL))
+        ));
+      }
+    }
+    $output .= "</div>";
+  }
+  if ($datagrid->getPager() != $datagrid->getPagerOptions('default_value')) {
+    $has_custom_pager = TRUE;
+  }
+  if ($has_filters || $has_custom_pager || $has_custom_sort || $has_custom_columns || $has_custom_blocks) {
+    $output .= "<div class='datagrid-advanced-control datagrid-reset'>"
+      . l(t('Reset'), $datagrid->getPath(), array(
+          'query' => array('_id' => $datagrid->getId(), '_r' => 2),
+          'fragment' => $datagrid->getId(),
+          'attributes' => array('class' => array('datagrid-button', $datagrid->isUsingAjax() && count($datagrid->getConfigurableBlocks()) == 0 ? 'use-ajax' : NULL))
+      ))
+      . "</div>";
+  }
+  if (!empty($panel)) {
+    $output .= '<div class="datagrid-panel">' . $panel . '</div>';
+  }
   return $output;
 }

@@ -51,7 +51,8 @@ class KwDatagrid {
   private $related_blocks = array(); // Blocs  dynamiques dépendant des sélections du tableau, affichés avant ou après la grille
   private $configurable_blocks = array(); // Liste des blocs pouvant être affichés / masqués par l'utilisateur
   private $default_blocks = array(); // Liste des blocs affichés par défaut
-  private $path = 'kw_datagrid/nojs/'; // Chemin vers la page de traitement des requêtes
+  private $path = 'kw_datagrid'; // Chemin vers la page de traitement des requêtes
+  private $form_display = 'standard';
 
   public function __construct($id, $table, $alias, $function, array $args, array $options = array()) {
     foreach($args as $key => $arg) {
@@ -66,6 +67,9 @@ class KwDatagrid {
     $this->table = $table;
     $this->tables[$alias] = $table;
     $this->pool = $id;
+    if (isset($options["form_display"])) {
+      $this->setFormDisplay($options['form_display']);
+    }
     if (isset($options["weight"])) {
       $this->weight = $options["weight"];
     }
@@ -110,8 +114,8 @@ class KwDatagrid {
     if(isset($options["extra_captions"]) && is_array($options["extra_captions"])) {
       $this->extra_caption = array_merge($this->extra_caption, $options["extra_captions"]);
     }
-    if (isset($_GET["_r"]) && $_GET["_r"] == 1) {
-      $this->reset();
+    if (isset($_GET["_r"])) {
+      $this->reset($_GET['_r'] > 1 ? 'all' : 'filters');
     }
     $this->constructor = self::retrieveConstructor($this->id);
     if($this->mode != "item" && is_null($this->constructor)) {
@@ -270,6 +274,17 @@ class KwDatagrid {
     return $this;
   }
 
+  public function getFormDisplay() {
+    return $this->form_display;
+  }
+
+  public function setFormDisplay($display) {
+    if (in_array($display, array('standard', 'advanced'))) {
+      $this->form_display = $display;
+    }
+    return $this;
+  }
+
   public function getPath() {
     return $this->path;
   }
@@ -302,7 +317,7 @@ class KwDatagrid {
     if (empty($options['choices']) || !is_array($options['choices'])) {
       $options['choices'] = array(5, 10, 20, 30, 50, 100);
     }
-    if (empty($options['display']) || !in_array($options['display'], array('none', 'form', 'buttons'))) {
+    if (empty($options['display']) || !in_array($options['display'], array('none', 'form', 'advanced'))) {
       $options['display'] = 'none';
     }
     if (empty($options['quantity']) || $options['quantity'] <= 0) {
@@ -671,6 +686,10 @@ class KwDatagrid {
     return $this;
   }
 
+  public function buildFilterForm() {
+    return drupal_get_form('kw_datagrid_filter_form', array('datagrid' => $this, 'filters_only' => TRUE));
+  }
+
   private function buildForm() {
     static $form = array();
     if (!isset($form[$this->id])) {
@@ -961,6 +980,9 @@ class KwDatagrid {
     if ($this->total_results > 0) {
       reset($orig_rows);
       $ikey = $this->key;
+      if ($this->pager > 0 && $this->rank_result > 0) {
+        $new_page = floor(($this->rank_result - 1) / $this->pager);
+      }
       foreach ($orig_rows as $key => $row) {
         if ($row->$ikey == $this->mode_context["item_id"]) {
           if (isset($rows[$key - 1])) {
@@ -991,9 +1013,9 @@ class KwDatagrid {
         "custom" => isset($this->mode_context["title"]) ? $this->mode_context["title"] : NULL,
         "list" => count($this->active_filters) == 0 ?
           l($this->extra_caption["backlink"], "node/" . $this->linked_node->nid,
-            array("fragment" => $this->id, "attributes" => array("class" => "back")))
+            array("fragment" => $this->id, "query" => array("_p" => isset($new_page) ? $new_page : 0), "attributes" => array("class" => "back")))
           : l($this->extra_caption["filtered_backlink"], "node/" . $this->linked_node->nid,
-            array("fragment" => $this->id, "attributes" => array("class" => "back"))) . " | ".
+            array("fragment" => $this->id, "query" => array("_p" => isset($new_page) ? $new_page : 0), "attributes" => array("class" => "back"))) . " | ".
             l($this->extra_caption["unfiltered_backlink"], "node/" . $this->linked_node->nid,
             array("fragment" => $this->id, "query" => array("_r" => 1), "attributes" => array("class" => "back"))),
         ),
@@ -1050,13 +1072,15 @@ class KwDatagrid {
       "#datagrid" => $this,
       "#rows" => $rows
     );
-    $form = $this->buildForm();
-    if (!is_null($form) && ($this->getUnfilteredTotalResults() > 1
-        || ($this->getUnfilteredTotalResults() > 0 && count($this->getConfigurableBlocks()) > 0)
-        || ($this->getUnfilteredTotalResults() > 0 && $this->hasSelectablesColumns()))) {
-      $datagrid["form"] = array(
-        "#markup" => "<div class='datagrid-filters'>" . drupal_render($form) . "</div>"
-      );
+    if ($this->form_display == 'standard') {
+      $form = $this->buildForm();
+      if (!is_null($form) && ($this->getUnfilteredTotalResults() > 1
+          || ($this->getUnfilteredTotalResults() > 0 && count($this->getConfigurableBlocks()) > 0)
+          || ($this->getUnfilteredTotalResults() > 0 && $this->hasSelectablesColumns()))) {
+        $datagrid["form"] = array(
+            "#markup" => "<div class='datagrid-filters'>" . drupal_render($form) . "</div>"
+        );
+      }
     }
     if (!empty($after_blocks)) {
       $datagrid = array_merge($datagrid, $after_output);
@@ -1097,13 +1121,15 @@ class KwDatagrid {
       $blocks = $input;
     }
     elseif ($this->persistant) {
-      $blocks = $this->retrieveSessionData('blocks');
+      if (isset($_GET['_b'])) {
+        $blocks = explode(';', $_GET['_b']);
+        $this->storeInSession('blocks', $blocks, TRUE, $this->getDefaultBlocks());
+      }
+      else {
+        $blocks = $this->retrieveSessionData('blocks');
+      }
       if (is_null($blocks)) {
-        if (isset($_GET['_b'])) {
-          $blocks = explode(';', $_GET['_b']);
-          $this->storeInSession('blocks', $blocks, TRUE, $this->getDefaultBlocks());
-        }
-        $blocks = FALSE;
+       $blocks = FALSE;
       }
     }
     elseif (isset($_GET['_b'])) {
@@ -1204,11 +1230,7 @@ class KwDatagrid {
     if($order !== FALSE && in_array(abs($order), $this->sortables["id"])) {
       $this->current_sort = $order;
       if($this->persistant) {
-        $old_sort = $this->retrieveSessionData('sort');
-        if ($old_sort !== FALSE && $old_sort != $this->current_sort) {
-          $this->storeInSession("sort", $this->current_sort, TRUE, $this->getDefaultOrderIndex());
-          $this->current_page = 0;
-        }
+        $this->storeInSession("sort", $this->current_sort, TRUE, $this->getDefaultOrderIndex());
       }
       return $this->current_sort;
     }
@@ -1232,7 +1254,7 @@ class KwDatagrid {
     }
   }
 
-  private function getDefaultOrderIndex() {
+  public function getDefaultOrderIndex() {
     if (is_null($this->default_order_index)) {
       $defaultOrders = $this->getDefaultOrders();
       $default = current($defaultOrders);
@@ -1668,11 +1690,14 @@ class KwDatagrid {
     if (is_array($input)) {
       $columns = $input;
     }
-    elseif ($this->persistant) {
-      $columns = $this->retrieveSessionData("columns");
-    }
     elseif (isset($_GET["_c"])) {
       $columns = explode(';', $_GET["_c"]);
+      if ($this->persistant) {
+        $this->storeInSession('columns', $columns, !empty($this->pool) ? TRUE : FALSE, $this->getDefaultColumns());
+      }
+    }
+    elseif ($this->persistant) {
+      $columns = $this->retrieveSessionData("columns");
     }
     if (!$serialize) {
       return $columns;
@@ -1732,8 +1757,8 @@ class KwDatagrid {
     $hideable = (!isset($options['hideable']) || $options['hideable']) ? TRUE : FALSE;
     $hidden = (!isset($options['hidden']) || !$options['hidden']) ? FALSE : TRUE;
     $title_tag = !empty($options['title_tag']) ? $options['title_tag'] : 'div';
-    $close_label = !empty($options['close_label']) ? $options['close_label'] : t('Hide block');
-    $open_label = !empty($options['open_label']) ? $options['open_label'] : t('Show block');
+    $close_label = !empty($options['close_label']) ? $options['close_label'] : t('Hide !title', array('!title' => $title));
+    $open_label = !empty($options['open_label']) ? $options['open_label'] : t('Show !title', array('!title' => $title));
     $this->related_blocks[$id] = array(
       'id' => $id,
       'function' => $function,
@@ -1779,6 +1804,9 @@ class KwDatagrid {
       $parameters['_r'] = 1;
     }
     else {
+      if (isset($parameters['_r'])) {
+        unset($parameters['_r']);
+      }
       // Page active
       if ($this->getCurrentPage() > 0) {
         $parameters['_p'] = $this->getCurrentPage();
