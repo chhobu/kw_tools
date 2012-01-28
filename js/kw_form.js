@@ -80,14 +80,19 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
     }
     return {size: items.length, html: html};
   };
-  var msw_check_selected_items = function($area) {
-    $area.has("a.selected").length > 0 ? $area.addClass("with-selected").removeClass("without-selected") : $area.removeClass("with-selected").addClass("without-selected");
+  var msw_check_selectable_items = function($area) {
+    $area1 = $area.find(".unchecked-items");
+    $area1.has("a.selected").length > 0 ? $area.removeClass("without-selectables").addClass("with-selectables") : $area.addClass("without-selectables").removeClass("with-selectables");
+    $area1.has("a").length > 0 ? $area.removeClass("without-unchecked").addClass("with-unchecked") : $area.addClass("without-unchecked").removeClass("with-unchecked");
+    $area2 = $area.find(".checked-items");
+    $area2.has("a.selected").length > 0 ? $area.removeClass("without-removables").addClass("with-removables") : $area.addClass("without-removables").removeClass("with-removables");
+    $area2.has("a").length > 0 ? $area.removeClass("without-checked").addClass("with-checked") : $area.addClass("without-checked").removeClass("with-checked");
   };
   var msw_define_multiselect_commands = function () {
     $(".multiselect-table .items a").not(".msw-processed").addClass("msw-processed").keyup(function(e) {
       if(e.which == 32 || e.which == 16 || e.which == 17) {
         $(this).toggleClass("selected");
-        msw_check_selected_items($(this).parents(".multiselect-table"));
+        msw_check_selectable_items($(this).parents(".multiselect-table"));
         e.preventDefault();
       }
       else if(e.which == 13 || e.which == 46 || e.which == 8) {
@@ -95,29 +100,29 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
         $rel.attr("checked", $rel.is(":checked") ? "" : "checked");
         $parents = $(this).parents(".multiselect-table");
         msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
-        msw_check_selected_items($parents);
+        msw_check_selectable_items($parents);
         e.preventDefault();
       }
       else if (e.which == 40 || e.which == 39) {
         $(this).removeClass("selected").parents("li").next("li").find("a").addClass("selected").focus();
-        msw_check_selected_items($(this).parents(".multiselect-table"));
+        msw_check_selectable_items($(this).parents(".multiselect-table"));
         e.preventDefault();
       }
       else if (e.which == 37 || e.which == 38) {
         $(this).removeClass("selected").parents("li").prev("li").find("a").addClass("selected").focus();
-        msw_check_selected_items($(this).parents(".multiselect-table"));
+        msw_check_selectable_items($(this).parents(".multiselect-table"));
         e.preventDefault();
       }
     }).click(function() {
       $(this).toggleClass("selected");
-      msw_check_selected_items($(this).parents(".multiselect-table"));
+      msw_check_selectable_items($(this).parents(".multiselect-table"));
       return false;
     }).dblclick(function() {
       $rel = $("#"+$(this).attr("rel"));
       $rel.attr("checked", $rel.is(":checked") ? "" : "checked");
       $parents = $(this).parents(".multiselect-table");
       msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
-      msw_check_selected_items($parents);
+      msw_check_selectable_items($parents);
       return false;
     });
     $(".multiselect-table .select-one").not(".msw-processed").addClass("msw-processed").click(function() {
@@ -125,20 +130,26 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
       $parents.find(".unchecked-items a.selected").removeClass("selected").each(function(){
         $("#"+$(this).attr("rel")).attr("checked", "checked");
       });
-      $parents.find(".checked-items a.selected").removeClass("selected").each(function(){
-        $("#"+$(this).attr("rel")).attr("checked", "");
-      });
       msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
-      msw_check_selected_items($parents);
+      msw_check_selectable_items($parents);
       return false;
     });
+    $(".multiselect-table .deselect-one").not(".msw-processed").addClass("msw-processed").click(function() {
+        $parents = $(this).parents(".multiselect-table");
+        $parents.find(".checked-items a.selected").removeClass("selected").each(function(){
+          $("#"+$(this).attr("rel")).attr("checked", "");
+        });
+        msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
+        msw_check_selectable_items($parents);
+        return false;
+      });
     $(".multiselect-table .select-all").not(".msw-processed").addClass("msw-processed").click(function() {
       $parents = $(this).parents(".multiselect-table");
       $parents.find(".unchecked-items a").each(function(){
         $("#"+$(this).attr("rel")).attr("checked", "checked");
       });
       msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
-      msw_check_selected_items($parents);
+      msw_check_selectable_items($parents);
       return false;
     });
     $(".multiselect-table .deselect-all").not(".msw-processed").addClass("msw-processed").click(function() {
@@ -147,7 +158,7 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
         $("#"+$(this).attr("rel")).attr("checked", "");
       });
       msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
-      msw_check_selected_items($parents);
+      msw_check_selectable_items($parents);
       return false;
     });
   };
@@ -164,16 +175,20 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
   $("div.form-checkboxes.multiselect-widget").not(".msw-processed").addClass("msw-processed").hide().each(function() {
     checked = msw_build_items_object($(this), "input[type=checkbox]:checked");
     unchecked = msw_build_items_object($(this), "input[type=checkbox]:not(:checked)");
-    $(this).before("<table class='multiselect-table without-selected'><thead><tr>"
+    $(this).before("<table class='multiselect-table without-selectables without-removables"
+      +(checked["size"] > 0 ? "" : " without-checked")
+      +(unchecked["size"] > 0 ? "" : " without-unchecked")
+      +"'><thead><tr>"
       +"<th scope='col'>"+Drupal.t("Unselected items")+" (<span class='unchecked-size'>"+ unchecked["size"] +"</span>)</th>"
       +"<th></th>"
       +"<th scope='col'>"+Drupal.t("Selected items")+" (<span class='checked-size'>"+ checked["size"] +"</span>)</th>"
       +"</tr></thead><tbody><tr class='odd no-hover'>"
       +"<td class='items'><div class='unchecked-items'>"+ unchecked["html"] +"</div></td>"
       +"<td class='actions'>"
-        +"<div><input type='image' src='"+Drupal.settings.basePath+"sites/all/modules/kw_tools/img/go_next.png' class='select-all' title=\""+Drupal.t("Select all")+"\" alt=\""+Drupal.t("Select all")+"\" /><div>"
-        +"<div><input type='image' src='"+Drupal.settings.basePath+"sites/all/modules/kw_tools/img/transfer.png' class='select-one' title=\""+Drupal.t("Switch selected items")+"\" alt=\""+Drupal.t("Switch selected items")+"\" /><div>"
-        +"<div><input type='image' src='"+Drupal.settings.basePath+"sites/all/modules/kw_tools/img/go_previous.png' class='deselect-all' title=\""+Drupal.t("Deselect all")+"\" alt=\""+Drupal.t("Deselect all")+"\" /><div>"
+        +"<div><input type='submit' class='control select-all' value=\""+Drupal.t("Transfer all")+"\" /><div>"
+        +"<div><input type='submit' class='control select-one' value=\""+Drupal.t("Transfer selection")+"\" /><div>"
+        +"<div><input type='submit' class='control deselect-one' value=\""+Drupal.t("Remove selection")+"\" /><div>"
+        +"<div><input type='submit' class='control deselect-all' value=\""+Drupal.t("Remove all")+"\" /><div>"
       +"</td>"
       +"<td class='items'><div class='checked-items'>"+ checked["html"] +"</div></td>"
       +"<tr><tbody></table>");

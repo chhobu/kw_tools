@@ -111,37 +111,6 @@ function kw_tools_date_formats() {
 // -------------------------------------------------
 
 /**
- * Renvoie une valeur d'un champ de type field
- * @param unknown_type $node
- * @param unknown_type $field
- */
-function kw_tools_get_locale_value($node, $field, $data = NULL) {
-  $language = $node->language;
-  if (isset($node->{$field}[$language])) {
-    if (!is_null($data) && isset($node->{$field}[$language][0][$data])) {
-      return $node->{$field}[$language][0][$data];
-    }
-    return $node->{$field}[$language];
-  }
-  elseif (isset($node->{$field}['und'])) {
-    if (!is_null($data) && isset($node->{$field}['und'][0][$data])) {
-      return $node->{$field}['und'][0][$data];
-    }
-    return $node->{$field}['und'];
-  }
-  else if(isset($node->$field) && is_array($node->$field)) {
-    $array = current($node->$field);
-    if (!is_null($data) && isset($array[0][$data])) {
-      return $array[0][$data];
-    }
-    return $array;
-  }
-  else {
-    return NULL;
-  }
-}
-
-/**
  * Ajoute des données sur un champ de formulaire afin de le coordonner avec un widget jquery
  * @param unknown_type $field
  * @param unknown_type $extra_classes
