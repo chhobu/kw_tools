@@ -189,7 +189,7 @@ function theme_datagrid($variables) {
             'page_new' => $datagrid->getCurrentPage(),
             'datagrid' => $datagrid,
             'parameters' => $parameters,
-            'attributes' => array('class' => array('pager-item'))
+            'attributes' => array('class' => array('pager-item'), 'title' => t('Display !x results per page', array('!x' => $choice)))
           ))
         );
       }
