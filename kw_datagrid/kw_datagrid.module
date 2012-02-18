@@ -160,7 +160,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
       unset($parameters['_f']);
     }
     $filters = $datagrid->getFilters();
-    $filter_options = array("-1" => t("-- Select a filter --"));
+    $filter_options = array('' => t("-- Select a filter --"));
     $filters["label"] = array_map("strip_tags", $filters["label"]);
     array_multisort($filters["weight"], $filters["label"], $filters["id"], $filters["type"],
       $filters["aliases"], $filters["options"]);
@@ -169,7 +169,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
     }
     if (!empty($form_state["input"]["_triggering_element_name"])) {
       $trigger = $form_state["input"]["_triggering_element_name"];
-      if ($form_state["values"]["filter-select"] > 0 && $trigger == "filter-select") {
+      if (!empty($form_state["values"]["filter-select"]) && $trigger == "filter-select") {
         $datagrid->addActiveFilter($form_state["values"]["filter-select"]);
         $form_state["input"]["filter-select"] = NULL;
       }
@@ -181,7 +181,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
     $container["filter-select"] = array(
       "#type" => "select",
       "#title" => t("Add a filter"),
-      "#default_value" => -1,
+      "#default_value" => '',
       "#options" => $filter_options,
       "#attributes" => array("class" => array("ajax-enabled")),
       "#ajax" => array(
@@ -197,6 +197,7 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
       "#limit_validation_errors" => array(array('filter-select'))
     );
     $container["filters"] = array();
+
     if(count($datagrid->getActiveFilters()) > 0) {
       $container["filters"] = array(
         "#type" => "fieldset",
@@ -420,7 +421,7 @@ function kw_datagrid_filter_form_submit($form, &$form_state) {
     $datagrid->removeActiveFilter(key($values["filter-remove"]));
     $form_state['rebuild'] = TRUE;
   }
-  else if (isset($values["filter-select"]) && $values["filter-select"] > 0) {
+  else if (!empty($values["filter-select"])) {
     $datagrid->addActiveFilter($values["filter-select"]);
   }
   foreach ($datagrid->getActiveFilters() as $key => $activeFilter) {

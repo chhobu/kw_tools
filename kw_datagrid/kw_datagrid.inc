@@ -508,9 +508,11 @@ class KwDatagrid {
     }
   }
 
-  public function addQueryReplacement($alias, $query, $key, $args = array()) {
+  public function addQueryReplacement($alias, $subquery_key, $subquery_output, $query, $key, $args = array()) {
     $this->replacements[$alias] = array(
       "function" => "!query",
+      "output" => $subquery_output,
+      "key" => $subquery_key,
       "args" => array(
         "query" => $query,
         "args" => $args,
@@ -593,12 +595,19 @@ class KwDatagrid {
     if ($type == KW_FILTRABLE_STRING && !isset($options["maxlength"])) {
       $options["maxlength"] = 255;
     }
+    if (!empty($options['id'])) {
+      $filter_id = $options['id'];
+      unset($options['id']);
+    }
+    else {
+      $filter_id = implode('_', $aliases);
+    }
     $this->filters["aliases"][] = $aliases;
     $this->filters["label"][] = $label;
     $this->filters["type"][] = $type;
     $this->filters["weight"][] = $weight;
     $this->filters["options"][] = $options;
-    $this->filters["id"][] = count($this->filters["aliases"]);
+    $this->filters["id"][] = $filter_id;
     return $this;
   }
 
@@ -629,16 +638,16 @@ class KwDatagrid {
     }
   }
 
-  public function addActiveFilter($key) {
+  public function addActiveFilter($key, $mode = NULL, $op = NULL, $value = NULL) {
     if (count($this->active_filters) > 50) {
       drupal_set_message("Too much filters !", "error");
       return $this;
     }
     $this->active_filters[] = array(
       "filter_id" => $key,
-      "mode" => NULL,
-      "op" => NULL,
-      "value" => NULL
+      "mode" => $mode,
+      "op" => $op,
+      "value" => $value
     );
     return $this;
   }
@@ -760,6 +769,16 @@ class KwDatagrid {
       }
     }
     // Récupération des filtres actifs
+    if ($this->id == $target_grid && isset($_GET['addFilter']) && in_array($_GET['addFilter'], $this->filters['id']) && isset($_GET['filterValue'])) {
+      $this->active_filters = array();
+      $filter_value = $_GET['filterValue'];
+      $filter_op = isset($_GET['filterOp']) ? $_GET['filterOp'] : 'EQUALS';
+      $filter_mode = isset($_GET['filterMode']) ? $_GET['filterMode'] : NULL;
+      $this->addActiveFilter($_GET['addFilter'], $filter_mode, $filter_op, $filter_value);
+      if ($this->persistant) {
+        $this->storeInSession("filters", $this->active_filters, FALSE);
+      }
+    }
     if (isset($_GET["_f"]) && $this->id == $target_grid) {
       $filters = drupal_json_decode($_GET["_f"]);
       if (is_array($filters)) {
@@ -818,6 +837,8 @@ class KwDatagrid {
                   && is_array($args["args"]) && isset($args["key"]) && isset($row->$args["key"])) {
                     $subqueries[$match[1]] = $args;
                     $subqueries[$match[1]]["columns"][] = $alias;
+                    $subqueries[$match[1]]["sq_key"] = $this->replacements[$match[1]]["key"];
+                    $subqueries[$match[1]]["sq_output"] = $this->replacements[$match[1]]["output"];
                   }
                   if (isset($subqueries[$match[1]])) {
                     $subqueries[$match[1]]["keys"][$key] = $row->$args["key"];
@@ -854,13 +875,19 @@ class KwDatagrid {
         $query = str_replace(":keys", implode(",", $keys), $query);
         $sq = db_query($query, $args);
         $result_sq = array();
-        foreach ($sq as $row) {
-          if (isset ($row->sq_key) && isset($row->sq_value)) {
-            $result_sq[$row->sq_key][] = $row->sq_value;
+        while ($sq_row = $sq->fetchAssoc()) {
+          $sq_row_output = $subquery["sq_output"];
+          foreach ($sq_row as $sq_column => $sq_column_value) {
+            if (substr_count($sq_row_output, ':' . $sq_column) > 0) {
+              $sq_row_output = str_replace(':' . $sq_column, $sq_column_value, $sq_row_output);
+            }
+          }
+          if (isset ($sq_row[$subquery["sq_key"]])) {
+            $result_sq[$sq_row[$subquery["sq_key"]]][] = $sq_row_output;
           }
         }
         foreach ($orig_rows as $key => $row) {
-          if (isset($rows[$key]) && isset($row->$subquery["key"])) {
+          if (isset($rows[$key])) {
             foreach ($subquery["columns"] as $column) {
               $data = t("(None)");
               if (isset($result_sq[$row->$subquery["key"]])) {

@@ -672,7 +672,7 @@ function theme_datagrid_advanced_controls($variables) {
       $filters = $datagrid->getActiveFilters();
       $has_filters = count($filters) > 0;
       if ((isset($parameters['_o']) && $parameters['_o'] == 'f') || (!isset($parameters['_o']) && $has_filters)) {
-        unset($filters_toogle_parameters['_o']);
+        $filters_toogle_parameters['_o'] = '';
         $classes[] = 'activated';
         $output .= l(t('Hide filter panel'), $datagrid->getPath(), array(
             'query' => $filters_toogle_parameters,
@@ -701,7 +701,7 @@ function theme_datagrid_advanced_controls($variables) {
         $classes[] = 'use-ajax';
       }
       if (isset($parameters['_o']) && $parameters['_o'] == 's') {
-        unset($sort_toogle_parameters['_o']);
+        $filters_toogle_parameters['_o'] = '';
         $classes[] = 'activated';
         $output .= l(t('Hide sort panel'), $datagrid->getPath(), array(
             'query' => $sort_toogle_parameters,
