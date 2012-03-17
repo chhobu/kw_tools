@@ -186,6 +186,21 @@ function kw_tools_number_format($input, $options = array()) {
   return $prefix.number_format($input, $precision, $decimal, $thousands).$suffix;
 }
 
+function kw_tools_duration($seconds_count) {
+    $seconds = $seconds_count % 60;
+    $minutes = floor($seconds_count/60);
+    $hours   = floor($seconds_count/3600);
+    $seconds = str_pad($seconds, 2, "0", STR_PAD_LEFT) . t('s');
+    $minutes = $minutes . t('mn ');
+    if($hours > 0) {
+      $hours = $hours. t('h ');
+    }
+    else {
+      $hours = '';
+    }
+    return $hours . $minutes . $seconds;
+}
+
 /**
  * Renvoie un contenu différent si une variable est nulle (ou vide) ou non nulle
  * @param unknown_type $value
