@@ -508,7 +508,7 @@ class KwDatagrid {
     }
   }
 
-  public function addQueryReplacement($alias, $subquery_key, $subquery_output, $query, $key, $args = array()) {
+  public function addQueryReplacement($alias, $subquery_key, $subquery_output, $query, $key, $args = array(), $transformation_function = NULL) {
     $this->replacements[$alias] = array(
       "function" => "!query",
       "output" => $subquery_output,
@@ -517,7 +517,8 @@ class KwDatagrid {
         "query" => $query,
         "args" => $args,
         "key" => $key
-      )
+      ),
+      "transformation" => $transformation_function
     );
     return $this;
   }
@@ -839,6 +840,7 @@ class KwDatagrid {
                     $subqueries[$match[1]]["columns"][] = $alias;
                     $subqueries[$match[1]]["sq_key"] = $this->replacements[$match[1]]["key"];
                     $subqueries[$match[1]]["sq_output"] = $this->replacements[$match[1]]["output"];
+                    $subqueries[$match[1]]["transformation"] = $this->replacements[$match[1]]["transformation"];
                   }
                   if (isset($subqueries[$match[1]])) {
                     $subqueries[$match[1]]["keys"][$key] = $row->$args["key"];
@@ -876,6 +878,9 @@ class KwDatagrid {
         $sq = db_query($query, $args);
         $result_sq = array();
         while ($sq_row = $sq->fetchAssoc()) {
+          if (!empty($subquery['transformation'])) {
+            $sq_row = call_user_func_array($subquery['transformation'], array($sq_row));
+          }
           $sq_row_output = $subquery["sq_output"];
           foreach ($sq_row as $sq_column => $sq_column_value) {
             if (substr_count($sq_row_output, ':' . $sq_column) > 0) {

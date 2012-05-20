@@ -487,8 +487,14 @@ function kw_datagrid_get_enum_choices($filters, $filter) {
     $choices_query = db_query($filters["options"][$filter]["query"],
       isset($filters["options"][$filter]["query_args"]) ? $filters["options"][$filter]["query_args"] : array()
     );
-    foreach ($choices_query as $row) {
-      $choices[$row->filter_key] = $row->filter_value;
+    while ($row = $choices_query->fetchAssoc()) {
+      if (isset($filters['options'][$filter]['transformation'])) {
+        $row = call_user_func_array($filters['options'][$filter]['transformation'], array($row));
+      }
+      $choices[$row['filter_key']] = $row['filter_value'];
+    }
+    if (isset($filters['options'][$filter]['resort']) && $filters['options'][$filter]['resort'] == TRUE) {
+      asort($choices);
     }
   }
   else {
