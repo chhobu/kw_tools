@@ -56,15 +56,12 @@ function kw_tools_display_block_kwfooter() {
   global $user;
   $output = "";
   $separator = " | ";
-  $output .= t("Made by !link", array("!link" => l(
-    t("Krassweb Korporation"), "introducing-krassweb-korp",
-      array("attributes" => array("class" => array("commercial")))
-    )));
   if ($user->uid == 0) {
-    $output .= $separator . t("Not connected");
+    $output .= $separator . l(t("Not connected"), 'user/login');
   }
   else {
-    $output .= $separator . t("Connected as !user", array("!user" => theme("username",array("account" => $user))));
+    $output .= $separator . t("Connected as !user", array("!user" => theme("username",
+        array("account" => $user))));
   }
   $time = "<span class='date'>" . format_date(REQUEST_TIME, "custom", variable_get("date_format_just_the_date", "Y-m-d")) . "</span>";
   $hour = "<span class='time'>" . format_date(REQUEST_TIME, "custom", variable_get("date_format_just_the_time", "H:i:s")) . "</span>";
