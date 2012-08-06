@@ -57,7 +57,7 @@ function kw_tools_display_block_kwfooter() {
   $output = "";
   $separator = " | ";
   if ($user->uid == 0) {
-    $output .= $separator . l(t("Not connected"), 'user/login');
+    $output .= l(t("Not connected"), 'user/login');
   }
   else {
     $output .= $separator . t("Connected as !user", array("!user" => theme("username",
