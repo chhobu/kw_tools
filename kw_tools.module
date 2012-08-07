@@ -60,7 +60,7 @@ function kw_tools_display_block_kwfooter() {
     $output .= l(t("Not connected"), 'user/login');
   }
   else {
-    $output .= $separator . t("Connected as !user", array("!user" => theme("username",
+    $output .= t("Connected as !user", array("!user" => theme("username",
         array("account" => $user))));
   }
   $time = "<span class='date'>" . format_date(REQUEST_TIME, "custom", variable_get("date_format_just_the_date", "Y-m-d")) . "</span>";
