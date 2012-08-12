@@ -322,7 +322,8 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
       "#default_value" => empty($default) ? array() : $default
     );
   }
-  if (!$filters_only && count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0) {
+  $sortables = $datagrid->getSortables();
+  if (!$filters_only && !empty($sortables) && count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0) {
     if (isset($parameters['_s'])) {
       unset($parameters['_s']);
     }

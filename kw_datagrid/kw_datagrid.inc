@@ -53,6 +53,7 @@ class KwDatagrid {
   private $default_blocks = array(); // Liste des blocs affichés par défaut
   private $path = 'kw_datagrid'; // Chemin vers la page de traitement des requêtes
   private $form_display = 'standard';
+  private $auto_refresh = 0; // Actualisation automatique de la grille
 
   public function __construct($id, $table, $alias, $function, array $args, array $options = array()) {
     foreach($args as $key => $arg) {
@@ -328,6 +329,10 @@ class KwDatagrid {
     return $this;
   }
 
+  public function addAutoRefresh($delay) {
+    $this->auto_refresh = max(10, $delay);
+  }
+
   public function addCondition($field, $value = NULL, $operand = NULL) {
     $this->conditions[] = array(
       "field" => $field,
@@ -373,23 +378,35 @@ class KwDatagrid {
     return $this;
   }
 
-  public function addKey($alias, $table_alias, $field, $selectable = TRUE, $sortable = FALSE, $filtrable = KW_FILTRABLE_NO) {
-    $this->addField($alias, $table_alias, $field, $selectable, $sortable, $filtrable);
+  public function addKey($alias, $table_alias = NULL, $field = NULL, $options = array()) {
+    if (is_null($table_alias)) {
+      $table_alias = key($this->tables);
+    }
+    $this->addField($alias, $table_alias, $field, $options);
     $this->key = $alias;
     return $this;
   }
 
-  public function addField($alias, $table_alias, $field, $selectable = TRUE, $sortable = FALSE, $filtrable = KW_FILTRABLE_NO, $hidden = FALSE, $expression = NULL, $sort_expression = NULL) {
+  public function addField($alias, $table_alias, $field = NULL, $options = array()) {
+    if (is_null($field) && !is_null($table_alias)) {
+      $field = $alias;
+    }
     $this->fields[$alias] = array(
       "table_alias" => $table_alias,
       "table_field" => $field,
-      "selectable" => $selectable,
-      "sortable" =>  $sortable,
-      "filtrable" => $filtrable,
-      "hidden" => $hidden,
-      "expression" => $expression,
-      "sort_expression" => $sort_expression
+      "selectable" => isset($options['selectable']) ? $options['selectable'] : TRUE,
+      "sortable" =>  isset($options['sortable']) ? $options['sortable'] : FALSE,
+      "filtrable" => isset($options['filtrable']) ? $options['filtrable'] : KW_FILTRABLE_NO,
+      "hidden" => isset($options['hidden']) ? $options['hidden'] : FALSE,
+      "expression" => isset($options['expression']) ? $options['expression'] : NULL,
+      "sort_expression" => isset($options['sort_expression']) ? $options['sort_expression'] : NULL
     );
+    return $this;
+  }
+
+  public function addExpression($alias, $expression, $options = array()) {
+    $options['expression'] = $expression;
+    $this->addField($alias, NULL, NULL, $options);
     return $this;
   }
 
@@ -412,9 +429,9 @@ class KwDatagrid {
     return $this;
   }
 
-  public function addColumn($alias, $label, $output, $table_alias = NULL, $field = NULL, $options = NULL) {
+  public function addColumn($alias, $label, $output, $options = NULL) {
     $sortable = FALSE;
-    $filtrable = FALSE;
+    $filtrable = KW_FILTRABLE_NO;
     $filtrable_options = array();
     $itemable = FALSE;
     $hidden = FALSE;
@@ -423,8 +440,19 @@ class KwDatagrid {
     $expression = NULL;
     $modifiable = FALSE;
     $modifiable_options = array();
+    $table = NULL;
+    $field = NULL;
     $sort_expression = NULL;
     if (is_array($options)) {
+      if (isset($options['field'])) {
+        if (substr_count($options['field'], '.') > 0) {
+          $table = substr($options['field'], 0, strpos($options['field'], '.'));
+          $field = substr($options['field'], strpos($options['field'], '.') + 1);
+        }
+        else {
+          $field = $options['field'];
+        }
+      }
       if (isset($options["sortable"])) {
         $sortable = $options["sortable"];
       }
@@ -449,7 +477,7 @@ class KwDatagrid {
       if (isset($options["uncacheable"])) {
         $uncacheable = $options["uncacheable"];
       }
-      if (isset($options["expression"])) {
+      if (!empty($options["expression"])) {
         $expression = $options["expression"];
       }
       if (isset($options["sort_expression"])) {
@@ -467,21 +495,29 @@ class KwDatagrid {
       $modifiable = FALSE;
     }
     $this->columns[$alias] = array(
-      "label" => $label,
-      "is_db_field" => !is_null($table_alias) && !is_null($field) ? TRUE : FALSE,
-      "output" => $output,
-      "itemable" => $itemable,
-      "main" => $main,
-      "hidden" => $hidden,
-      "uncacheable" => $uncacheable,
-      "modifiable" => $modifiable,
-      "modifiable_options" => $modifiable_options
+      'label' => $label,
+      'is_db_field' => !is_null($table) && !is_null($field) ? TRUE : FALSE,
+      'is_expression' => !is_null($expression) ? TRUE : FALSE,
+      'output' => $output,
+      'itemable' => $itemable,
+      'main' => $main,
+      'hidden' => $hidden,
+      'uncacheable' => $uncacheable,
+      'modifiable' => $modifiable,
+      'modifiable_options' => $modifiable_options
     );
     if (!$this->columns[$alias]['uncacheable'] && !$this->columns[$alias]['hidden']) {
       $this->default_columns[] = $alias;
     }
-    if ($this->columns[$alias]["is_db_field"]) {
-      $this->addField($alias, $table_alias, $field, TRUE, $sortable, $filtrable, $hidden, $expression, $sort_expression);
+    if ($this->columns[$alias]["is_db_field"] || $this->columns[$alias]['is_expression']) {
+      $this->addField($alias, $table, $field, array(
+          'selectable' => TRUE,
+          'sortable' => $sortable,
+          'filtrable' => $filtrable,
+          'hidden' => $hidden,
+          'expression' => $expression,
+          'sort_expression' => $sort_expression
+      ));
     }
     if ($hidden) {
       $this->selectable_columns = TRUE;
@@ -508,26 +544,44 @@ class KwDatagrid {
     }
   }
 
-  public function addQueryReplacement($alias, $subquery_key, $subquery_output, $query, $key, $args = array(), $transformation_function = NULL) {
-    $this->replacements[$alias] = array(
-      "function" => "!query",
-      "output" => $subquery_output,
-      "key" => $subquery_key,
-      "args" => array(
-        "query" => $query,
-        "args" => $args,
-        "key" => $key
-      ),
-      "transformation" => $transformation_function
-    );
-    return $this;
-  }
-
-  public function addReplacement($alias, $function, $args = array()) {
-    $this->replacements[$alias] = array(
-      "function" => $function,
-      "args" => $args
-    );
+  public function addVariable($variable, $options) {
+    if (isset($options['subquery'])) {
+      $subquery = $options['subquery'];
+      $key = !empty($options['subquery_key']) ? $options['subquery_key'] : 0;
+      $output = !empty($options['subquery_output']) ? $options['subquery_output'] : 1;
+      $input = !empty($options['subquery_input']) ? $options['subquery_input'] : $this->key;
+      $args = !empty($options['subquery_args']) && is_array($options['subquery_args']) ? $options['subquery_args'] : array();
+      $callback = !empty($options['subquery_callback']) ? $options['subquery_callback'] : NULL;
+      $export = !empty($options['export']) && is_array($options['export']) ? $options['export'] : array();
+      $this->replacements[$variable] = array(
+          'type' => 'query',
+          'output' => $output,
+          'key' => $key,
+          'query' => $subquery,
+          'args' => $args,
+          'input' => $input,
+          'callback' => $callback,
+          'export' => $export
+      );
+    }
+    if (isset($options['callback'])) {
+      $callback = $options['callback'];
+      $args = !empty($options['args']) && is_array($options['args']) ? $options['args'] : array();
+      $this->replacements[$variable] = array(
+          'type' => 'callback',
+          'callback' => $callback,
+          'args' => $args
+      );
+    }
+    if (isset($options['final_callback'])) {
+      $callback = $options['final_callback'];
+      $args = !empty($options['final_args']) && is_array($options['final_args']) ? $options['final_args'] : array();
+      $this->replacements[$variable] = array(
+          'type' => 'final_callback',
+          'callback' => $callback,
+          'args' => $args
+      );
+    }
     return $this;
   }
 
@@ -705,8 +759,8 @@ class KwDatagrid {
     if (!isset($form[$this->id])) {
       $has_filters = isset($this->filters['aliases']) && count($this->filters['aliases']) > 0 ? TRUE : FALSE;
       $has_pager_choices = !empty($this->pager_options) && $this->pager_options['display'] == 'form' && count($this->pager_options['choices']) > 0 ? TRUE : FALSE;
-      $has_sort_options = count(array_keys($this->sortables['specific'], TRUE)) > 0 ? TRUE : FALSE;
-      if ($has_filters || $this->selectable_columns || $has_pager_choices || $has_sort_options || $has_blocks) {
+      $has_sort_options = !empty($this->sortables) && count(array_keys($this->sortables['specific'], TRUE)) > 0 ? TRUE : FALSE;
+      if ($has_filters || $this->selectable_columns || $has_pager_choices || $has_sort_options) {
         $form[$this->id] = drupal_get_form('kw_datagrid_filter_form', array('datagrid' => $this));
       }
       else {
@@ -742,14 +796,14 @@ class KwDatagrid {
       foreach ($this->columns as $alias => $column) {
         if ($column["uncacheable"] || $alias == $this->mode_context["column"]) {
           $this->columns[$alias]["hidden"] = FALSE;
-          if ($column["is_db_field"]) {
+          if ($column["is_db_field"] || $column['is_expression']) {
             $this->fields[$alias]["hidden"] = FALSE;
           }
           continue;
         }
         else {
           $this->columns[$alias]["hidden"] = TRUE;
-          if ($column["is_db_field"]) {
+          if ($column["is_db_field"] || $column['is_expression']) {
             $this->fields[$alias]["hidden"] = TRUE;
           }
         }
@@ -763,7 +817,7 @@ class KwDatagrid {
             continue;
           }
           $this->columns[$alias]["hidden"] = !in_array($alias, $columns);
-          if ($column["is_db_field"]) {
+          if ($column["is_db_field"] || $column['is_expression']) {
             $this->fields[$alias]["hidden"] = $this->columns[$alias]["hidden"];
           }
         }
@@ -799,6 +853,7 @@ class KwDatagrid {
     // Remplissage des lignes du tableau
     $rows = array();
     $subqueries = array();
+    $final_callbacks = array();
     if($this->total_results > 0) {
       $result = $query->execute();
       $orig_rows = array();
@@ -809,7 +864,6 @@ class KwDatagrid {
         if ($this->mode != "item" && !is_null($this->key)) {
           $key = $row->{$this->key};
         }
-        $orig_rows[$key] = $row;
         foreach ($this->columns as $alias => $column) {
           if ($column["hidden"]) {
             continue;
@@ -831,28 +885,33 @@ class KwDatagrid {
           }
           if (isset($matches[$alias]) && is_array($matches[$alias])) {
             foreach ($matches[$alias] as $match) {
-              if (isset($this->replacements[$match[1]])) {
-                $args = $this->replacements[$match[1]]["args"];
-                if ($this->replacements[$match[1]]["function"] == "!query") {
-                  if (!isset($subqueries[$match[1]]) && isset($args["query"]) && isset($args["args"])
-                  && is_array($args["args"]) && isset($args["key"]) && isset($row->$args["key"])) {
-                    $subqueries[$match[1]] = $args;
-                    $subqueries[$match[1]]["columns"][] = $alias;
-                    $subqueries[$match[1]]["sq_key"] = $this->replacements[$match[1]]["key"];
-                    $subqueries[$match[1]]["sq_output"] = $this->replacements[$match[1]]["output"];
-                    $subqueries[$match[1]]["transformation"] = $this->replacements[$match[1]]["transformation"];
-                  }
-                  if (isset($subqueries[$match[1]])) {
-                    $subqueries[$match[1]]["keys"][$key] = $row->$args["key"];
-                  }
-                  continue;
+              $variable = $match[1];
+              // Remplacement par une nouvelle requête
+              if (!empty($this->replacements[$variable]) && $this->replacements[$variable]['type'] == "query") {
+                if (!isset($subqueries[$variable])) {
+                  $subqueries[$variable] = $this->replacements[$variable];
                 }
-                $args = $this->proceedArgsReplacement($match[1], $args, $row, $pattern);
-                $rpl_string = call_user_func_array($this->replacements[$match[1]]["function"], $args);
-                $output = str_replace($match[0], $rpl_string, $output);
+                $subqueries[$variable]["columns"][$alias] = $match[0];
+                $input = $this->replacements[$variable]['input'];
+                $subqueries[$variable]["values"][$key] = $row->$input;
               }
-              if (property_exists($row, $match[1])) {
-               $output = str_replace($match[0], $row->$match[1], $output);
+              // Remplacement par une fonction de callback à la fin
+              elseif (!empty($this->replacements[$variable]) && $this->replacements[$variable]['type'] == 'final_callback') {
+                if (!isset($final_callbacks[$variable])) {
+                  $final_callbacks[$variable] = $this->replacements[$variable];
+                }
+                $final_callbacks[$variable]["columns"][$alias] = $match[0];
+              }
+              // Remplacement par une fonction de callback immédiatement
+              elseif (!empty($this->replacements[$variable]) && $this->replacements[$variable]['type'] == 'callback') {
+                $args = $this->replacements[$variable]["args"];
+                $args = $this->proceedArgsReplacement($variable, $args, $row, $pattern);
+                $rpl_string = call_user_func_array($this->replacements[$variable]["callback"], $args);
+                $output = str_replace($match[0], $rpl_string, $output);
+                $row->$variable = $output;
+              }
+              elseif (property_exists($row, $variable)) {
+                $output = str_replace($match[0], $row->$variable, $output);
               }
             }
           }
@@ -863,43 +922,84 @@ class KwDatagrid {
           $output = str_replace("!rank", $i, $output);
           $rows[$key][$alias]["data"] = $output;
         }
+        $orig_rows[$key] = $row;
       }
+      // Traitement des sous-requêtes
       foreach ($subqueries as $placeholder => $subquery) {
         $args = $subquery["args"];
         $query = $subquery["query"];
         $keys = array();
-        if (isset($subquery["keys"])) {
-          foreach ($subquery["keys"] as $key => $value) {
-            $args[":key" . $key] = $value;
-            $keys[$key] = ":key" . $key;
-          }
+        if (isset($subquery["input"])) {
+          $args[':input'] = $subquery['values'];
         }
-        $query = str_replace(":keys", implode(",", $keys), $query);
         $sq = db_query($query, $args);
         $result_sq = array();
         while ($sq_row = $sq->fetchAssoc()) {
-          if (!empty($subquery['transformation'])) {
-            $sq_row = call_user_func_array($subquery['transformation'], array($sq_row));
-          }
-          $sq_row_output = $subquery["sq_output"];
-          foreach ($sq_row as $sq_column => $sq_column_value) {
-            if (substr_count($sq_row_output, ':' . $sq_column) > 0) {
-              $sq_row_output = str_replace(':' . $sq_column, $sq_column_value, $sq_row_output);
+          // Clé de stockage pour chaque ligne
+          if (is_numeric($subquery['key'])) {
+            $sq_i = 0;
+            foreach ($sq_row as $sq_column => $sq_column_value) {
+              if ($sq_i == $subquery['key']) {
+                $sq_key = $sq_column_value;
+                break;
+              }
+              $sq_i++;
             }
           }
-          if (isset ($sq_row[$subquery["sq_key"]])) {
-            $result_sq[$sq_row[$subquery["sq_key"]]][] = $sq_row_output;
+          elseif (isset($sq_row[$subquery['key']])) {
+            $sq_key = $sq_row[$subquery['key']];
           }
+          else {
+            $sq_key = current($sq_row);
+          }
+          // Chargement / modification des données par une fonction
+          if (!empty($subquery['callback'])) {
+            $sq_row = call_user_func_array($subquery['callback'], array($sq_row));
+          }
+          // Génération de la sortie
+          $sq_row_output = $subquery['output'];
+          $sq_i = 0;
+          foreach ($sq_row as $sq_column => $sq_column_value) {
+            if (is_numeric($sq_row_output)) {
+              if ($sq_i == $sq_row_output) {
+                $sq_row_output = $sq_column_value;
+              }
+              $sq_i++;
+            }
+            elseif (substr_count($sq_row_output, ':' . $sq_column) > 0) {
+              $sq_row_output = str_replace(':' . $sq_column, $sq_column_value, $sq_row_output);
+            }
+            if (in_array($sq_column, $subquery['export']) && isset($orig_rows[$key])) {
+              $orig_rows[$sq_key]->$sq_column = $sq_column_value;
+            }
+          }
+          // Sauvegarde dans le tableau de données
+          $orig_rows[$sq_key]->{$placeholder}[] = $sq_row_output;
+          $result_sq[$sq_key][] = $sq_row_output;
         }
+        // Remplacement dans la grille finale
         foreach ($orig_rows as $key => $row) {
           if (isset($rows[$key])) {
-            foreach ($subquery["columns"] as $column) {
-              $data = t("(None)");
-              if (isset($result_sq[$row->$subquery["key"]])) {
-                $data = implode(", ", $result_sq[$row->$subquery["key"]]);
+            foreach ($subquery["columns"] as $column => $output) {
+              if (!empty($result_sq[$key])) {
+                $data = implode(", ", $result_sq[$key]);
+              }
+              else {
+                $data = t("(None)");
               }
               $rows[$key][$column]["data"] = str_replace(":" . $placeholder, $data, $rows[$key][$column]["data"]);
             }
+          }
+        }
+      }
+      // Traitement des sous-requêtes
+      foreach ($final_callbacks as $variable => $replacement) {
+        foreach ($orig_rows as $key => $row) {
+          $args = $replacement['args'];
+          $args['context'] = $row;
+          $new_value = call_user_func_array($replacement['callback'], $args);
+          foreach ($replacement['columns'] as $column => $output) {
+            $rows[$key][$column]["data"] = str_replace(':' . $variable, $new_value, $rows[$key][$column]["data"]);
           }
         }
       }
@@ -1241,7 +1341,7 @@ class KwDatagrid {
               $rpl_clb = call_user_func_array($this->replacements[$match[1]]["function"], $clb_args);
               $arg = str_replace($match[0], $rpl_clb, $arg);
             }
-            if (property_exists($row,$match[1])) {
+            if (property_exists($row, $match[1])) {
               $arg = str_replace($match[0], $row->$match[1], $arg);
             }
           }
@@ -1269,7 +1369,7 @@ class KwDatagrid {
     // CAS 3 : valeur enregistrée en session
     if($this->persistant) {
       $session_data = $this->retrieveSessionData("sort");
-      if($session_data !== FALSE && in_array(abs($session_data),$this->sortables["id"])) {
+      if($session_data !== FALSE && !empty($this->sortables) && in_array(abs($session_data),$this->sortables["id"])) {
         $this->current_sort = $session_data;
         return $this->current_sort;
       }
@@ -1300,7 +1400,7 @@ class KwDatagrid {
   }
 
   private function createQuery() {
-    $main_table_alias = array_search($this->table, $this->tables);
+    $main_table_alias = key($this->tables);
     $query = db_select($this->table, $main_table_alias);
     $groupier = FALSE;
     $count_method = "classic";
@@ -1366,7 +1466,7 @@ class KwDatagrid {
     }
     // Ajout des champs
     foreach ($this->fields as $alias => $column) {
-      if ($column["hidden"] || !in_array($column["table_alias"], $tables)) {
+      if ($column["hidden"]) {
         continue;
       }
       if ($column["selectable"]) {
@@ -1374,10 +1474,15 @@ class KwDatagrid {
           $query->addExpression($column["expression"], $alias);
         }
         else {
-          $query->addField($column["table_alias"], $column["table_field"], $alias);
-        }
-        if ($groupier && is_null($column["expression"])) {
-          $query->groupBy($column["table_alias"] . "." .$column["table_field"]);
+          if (is_null($column['table_alias'])) {
+            $column['table_alias'] = $main_table_alias;
+          }
+          if (in_array($column["table_alias"], $tables)) {
+            $query->addField($column["table_alias"], $column["table_field"], $alias);
+            if ($groupier) {
+              $query->groupBy($column["table_alias"] . "." .$column["table_field"]);
+            }
+          }
         }
       }
     }
