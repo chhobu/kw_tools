@@ -68,7 +68,7 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
   var msw_build_items_object = function($area, type) {
     var items = new Array();
     $area.find(type).each(function(i) {
-      items[i] = {itemLabel : $(this).siblings("label").html(), itemValue : $(this).attr("id")};
+      items[i] = {itemLabel : $(this).parents('.form-item').find("label").html(), itemValue : $(this).attr("id")};
     });
     html = "";
     if(items.length > 0) {
@@ -197,5 +197,25 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
   // Moving tabledrag toogle weight wrapper control
   $(".form-item .tabledrag-toggle-weight-wrapper").each(function() {
     $(this).insertAfter($(this).parents(".form-item").find(".field-multiple-table"));
+  });
+  // Datepicker
+  $("input.datepickable, input.datetimepickable").each(function() {
+    settings_string = $(this).data('settings');
+    settings = jQuery.parseJSON(settings_string.replace(/\\/g, ''));
+    if ($(this).hasClass('datepickable')) {
+      $(this).datepicker(settings);
+    }
+    else {
+      settings.timeOnlyTitle = Drupal.t('Choose Time');
+      settings.timeText = Drupal.t('Time');
+      settings.hourText = Drupal.t('Hour');
+      settings.minuteText = Drupal.t('Minute');
+      settings.secondText = Drupal.t('Second');
+      settings.millisecText = Drupal.t('Millisecond');
+      settings.currentText = Drupal.t('Now');
+      settings.closeText = Drupal.t('Done');
+      settings.ampm = false;
+      $(this).datetimepicker(settings);
+    }
   });
 })(jQuery);}};

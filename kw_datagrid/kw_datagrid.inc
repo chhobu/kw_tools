@@ -2,6 +2,7 @@
 define('KW_FILTRABLE_NO', 0);
 define('KW_FILTRABLE_STRING', 1);
 define('KW_FILTRABLE_DATE', 2);
+define('KW_FILTRABLE_DATETIME', 5);
 define('KW_FILTRABLE_NUM', 3);
 define('KW_FILTRABLE_ENUM', 4);
 
@@ -51,9 +52,10 @@ class KwDatagrid {
   private $related_blocks = array(); // Blocs  dynamiques dépendant des sélections du tableau, affichés avant ou après la grille
   private $configurable_blocks = array(); // Liste des blocs pouvant être affichés / masqués par l'utilisateur
   private $default_blocks = array(); // Liste des blocs affichés par défaut
-  private $path = 'kw_datagrid'; // Chemin vers la page de traitement des requêtes
+  private $path = NULL; // Chemin vers la page de traitement des requêtes
   private $form_display = 'standard';
   private $auto_refresh = 0; // Actualisation automatique de la grille
+  private $op = array();
 
   public function __construct($id, $table, $alias, $function, array $args, array $options = array()) {
     foreach($args as $key => $arg) {
@@ -86,6 +88,13 @@ class KwDatagrid {
     if (isset($options["pool"])) {
       $this->pool = $options["pool"];
     }
+    if (isset($options["path"])) {
+      $path = $options["path"];
+    }
+    else {
+      $path = 'kw_datagrid';
+    }
+    $this->path = $path . '/' . time();
     if (isset($options["allowable_parameters"]) && is_array($options["allowable_parameters"])) {
       $allowable_parameters = $options["allowable_parameters"];
     }
@@ -99,7 +108,8 @@ class KwDatagrid {
       $constructor_storage = 'db';
     }
     $this->extra_caption = array(
-      "single_result" => "Only 1 result found.",
+      "no_results" => t("No results found."),
+      "single_result" => t("Only 1 result found."),
       "many_results" => "%total_results results found, order by !order.",
       "single_result_filtered" => "Only 1 result found (out of %unfiltered_total).",
       "many_results_filtered" => "%total_results results found (out of %unfiltered_total), order by !order.",
@@ -133,7 +143,8 @@ class KwDatagrid {
         'function' => $function,
         'args' => !empty($args) ? serialize($args) : NULL,
         'page' => $_GET['q'],
-        'parameters' => !empty($parameters) ? serialize($parameters) : NULL
+        'parameters' => !empty($parameters) ? serialize($parameters) : NULL,
+        'required_file' => !empty($options['file']) ? $options['file'] : NULL
       );
       if ($constructor_storage == 'db') {
         db_insert('kw_datagrid')->fields($this->constructor)->execute();
@@ -151,7 +162,7 @@ class KwDatagrid {
       return $_SESSION[$id]['constructor'];
     }
     $q = db_select('kw_datagrid', 'k');
-    $q->fields('k', array('function', 'args', 'page', 'parameters'));
+    $q->fields('k', array('function', 'args', 'page', 'parameters', 'required_file'));
     $q->condition('name', $id);
     $result = $q->execute()->fetchAssoc();
     if ($result) {
@@ -159,7 +170,8 @@ class KwDatagrid {
         'function' => $result['function'],
         'args' => !empty($result['args']) ? unserialize($result['args']) : NULL,
         'page' => $result['page'],
-        'parameters' => !empty($result['parameters']) ? unserialize($result['parameters']) : NULL
+        'parameters' => !empty($result['parameters']) ? unserialize($result['parameters']) : NULL,
+        'required_file' => $result['required_file']
       );
     }
     return $constructor;
@@ -224,6 +236,10 @@ class KwDatagrid {
     return $this->id;
   }
 
+  public function getAutoRefresh() {
+    return $this->auto_refresh;
+  }
+
   public function getCurrentPage() {
     if ($this->pager == 0) {
       $this->current_page = -1;
@@ -286,6 +302,10 @@ class KwDatagrid {
     return $this;
   }
 
+  public function hasOp($op) {
+    return in_array($op, $this->op);
+  }
+
   public function getPath() {
     return $this->path;
   }
@@ -330,7 +350,7 @@ class KwDatagrid {
   }
 
   public function addAutoRefresh($delay) {
-    $this->auto_refresh = max(10, $delay);
+    $this->auto_refresh = max(1, $delay);
   }
 
   public function addCondition($field, $value = NULL, $operand = NULL) {
@@ -398,6 +418,7 @@ class KwDatagrid {
       "sortable" =>  isset($options['sortable']) ? $options['sortable'] : FALSE,
       "filtrable" => isset($options['filtrable']) ? $options['filtrable'] : KW_FILTRABLE_NO,
       "hidden" => isset($options['hidden']) ? $options['hidden'] : FALSE,
+      "always_execute" => isset($options['always_execute']) ? $options['always_execute'] : FALSE,
       "expression" => isset($options['expression']) ? $options['expression'] : NULL,
       "sort_expression" => isset($options['sort_expression']) ? $options['sort_expression'] : NULL
     );
@@ -439,9 +460,11 @@ class KwDatagrid {
     $uncacheable = FALSE;
     $expression = NULL;
     $modifiable = FALSE;
+    $always_execute = FALSE;
     $modifiable_options = array();
     $table = NULL;
     $field = NULL;
+    $weight = count($this->columns);
     $sort_expression = NULL;
     if (is_array($options)) {
       if (isset($options['field'])) {
@@ -471,6 +494,9 @@ class KwDatagrid {
       if (isset($options["hidden"])) {
         $hidden = $options["hidden"];
       }
+      if (isset($options["always_execute"])) {
+        $always_execute = $options["always_execute"];
+      }
       if (isset($options["main"])) {
         $main = $options["main"];
       }
@@ -489,6 +515,10 @@ class KwDatagrid {
       if (isset($options["modifiable_options"])) {
         $modifiable_options = $options["modifiable_options"];
       }
+      if (isset($options["weight"])) {
+        $weight = $options["weight"];
+        $op['reorder_columns'] = TRUE;
+      }
     }
     if ($main) {
       $uncacheable = TRUE;
@@ -502,9 +532,11 @@ class KwDatagrid {
       'itemable' => $itemable,
       'main' => $main,
       'hidden' => $hidden,
+      'always_execute' => $always_execute,
       'uncacheable' => $uncacheable,
       'modifiable' => $modifiable,
-      'modifiable_options' => $modifiable_options
+      'modifiable_options' => $modifiable_options,
+      'weight' => $weight
     );
     if (!$this->columns[$alias]['uncacheable'] && !$this->columns[$alias]['hidden']) {
       $this->default_columns[] = $alias;
@@ -515,6 +547,7 @@ class KwDatagrid {
           'sortable' => $sortable,
           'filtrable' => $filtrable,
           'hidden' => $hidden,
+          'always_execute' => $always_execute,
           'expression' => $expression,
           'sort_expression' => $sort_expression
       ));
@@ -529,6 +562,19 @@ class KwDatagrid {
       $this->addFilter($alias, $label, $filtrable, $filtrable_options);
     }
     return $this;
+  }
+
+  private function reorderColumns() {
+    $cols['labels'] = array();
+    $cols['weights'] = array();
+    $cols['datas'] = array();
+    foreach ($this->columns as $key => $column) {
+      $cols['weights'][$key] = $column['weight'];
+      $cols['labels'][$key] = $column['label'];
+      $cols['datas'][$key] = $column;
+    }
+    array_multisort($cols['weights'], $cols['labels'], $cols['datas']);
+    $this->columns = $cols['datas'];
   }
 
   public function hasSelectablesColumns() {
@@ -549,6 +595,7 @@ class KwDatagrid {
       $subquery = $options['subquery'];
       $key = !empty($options['subquery_key']) ? $options['subquery_key'] : 0;
       $output = !empty($options['subquery_output']) ? $options['subquery_output'] : 1;
+      $output_mode = !empty($options['output_mode']) ? $options['output_mode'] : 'comma-separated';
       $input = !empty($options['subquery_input']) ? $options['subquery_input'] : $this->key;
       $args = !empty($options['subquery_args']) && is_array($options['subquery_args']) ? $options['subquery_args'] : array();
       $callback = !empty($options['subquery_callback']) ? $options['subquery_callback'] : NULL;
@@ -561,10 +608,11 @@ class KwDatagrid {
           'args' => $args,
           'input' => $input,
           'callback' => $callback,
-          'export' => $export
+          'export' => $export,
+          'output_mode' => $output_mode
       );
     }
-    if (isset($options['callback'])) {
+    elseif (isset($options['callback'])) {
       $callback = $options['callback'];
       $args = !empty($options['args']) && is_array($options['args']) ? $options['args'] : array();
       $this->replacements[$variable] = array(
@@ -573,7 +621,7 @@ class KwDatagrid {
           'args' => $args
       );
     }
-    if (isset($options['final_callback'])) {
+    elseif (isset($options['final_callback'])) {
       $callback = $options['final_callback'];
       $args = !empty($options['final_args']) && is_array($options['final_args']) ? $options['final_args'] : array();
       $this->replacements[$variable] = array(
@@ -792,6 +840,9 @@ class KwDatagrid {
       $this->pager = $this->retrieveSessionData("pager");
     }
     // Récupération des colonnes affichées
+    if (!empty($this->op['reorder_columns'])) {
+      $this->reorderColumns();
+    }
     if ($this->mode == "mass-edition") {
       foreach ($this->columns as $alias => $column) {
         if ($column["uncacheable"] || $alias == $this->mode_context["column"]) {
@@ -865,12 +916,19 @@ class KwDatagrid {
           $key = $row->{$this->key};
         }
         foreach ($this->columns as $alias => $column) {
-          if ($column["hidden"]) {
+          if ($column["hidden"] && !$column['always_execute']) {
             continue;
           }
-          $this->headers[$alias]["data"] = $column["label"];
-          if (isset($this->fields[$alias]) && $this->fields[$alias]["sortable"]) {
-            $this->headers[$alias]["field"] = $this->fields[$alias]["table_field"];
+          if (!$column['hidden']) {
+            $this->headers[$alias]["data"] = $column["label"];
+            if (isset($this->fields[$alias]) && $this->fields[$alias]["sortable"]) {
+              if (!empty( $this->fields[$alias]["table_field"])) {
+                $this->headers[$alias]["field"] = $this->fields[$alias]["table_field"];
+              }
+              elseif (!empty($this->fields[$alias]["expression"])) {
+                $this->headers[$alias]["field"] = $this->fields[$alias]["expression"];
+              }
+            }
           }
           $output = $column["output"];
           if ($this->mode == "item" && !$column["itemable"]) {
@@ -915,12 +973,14 @@ class KwDatagrid {
               }
             }
           }
-          if ($column["main"]) {
-            $rows[$key][$alias]["scope"] = "row";
-            $rows[$key][$alias]["class"][] = "main-cell";
+          if (!$column['hidden']) {
+            if ($column["main"]) {
+              $rows[$key][$alias]["scope"] = "row";
+              $rows[$key][$alias]["class"][] = "main-cell";
+            }
+            $output = str_replace("!rank", $i, $output);
+            $rows[$key][$alias]["data"] = $output;
           }
-          $output = str_replace("!rank", $i, $output);
-          $rows[$key][$alias]["data"] = $output;
         }
         $orig_rows[$key] = $row;
       }
@@ -982,12 +1042,22 @@ class KwDatagrid {
           if (isset($rows[$key])) {
             foreach ($subquery["columns"] as $column => $output) {
               if (!empty($result_sq[$key])) {
-                $data = implode(", ", $result_sq[$key]);
+                if ($subquery['output_mode'] == 'ul') {
+                  $data = theme('item_list', array('items' => $result_sq[$key], 'type' => 'ul'));
+                }
+                elseif ($subquery['output_mode'] == 'ol') {
+                  $data = theme('item_list', array('items' => $result_sq[$key], 'type' => 'ol'));
+                }
+                else {
+                  $data = implode(", ", $result_sq[$key]);
+                }
               }
               else {
                 $data = t("(None)");
               }
-              $rows[$key][$column]["data"] = str_replace(":" . $placeholder, $data, $rows[$key][$column]["data"]);
+              if (isset($rows[$key][$column])) {
+                $rows[$key][$column]["data"] = str_replace(":" . $placeholder, $data, $rows[$key][$column]["data"]);
+              }
             }
           }
         }
@@ -1016,11 +1086,15 @@ class KwDatagrid {
       $supercaption = '<strong> ' . $supercaption . ' :</strong> ';
     }
     if (count($this->applied_filters) == 0) {
-      if (isset($this->extra_caption["single_result"]) && $this->total_results == 1) {
+      if (!empty($this->extra_caption["no_results"]) && $this->total_results == 0) {
         $supercaption .= "<span class='results'>" .
-          t($this->extra_caption["single_result"]) . "</span>";
+          $this->extra_caption["no_results"] . "</span>";
       }
-      elseif (isset($this->extra_caption["many_results"]) && $this->total_results > 1) {
+      elseif (!empty($this->extra_caption["single_result"]) && $this->total_results == 1) {
+        $supercaption .= "<span class='results'>" .
+          $this->extra_caption["single_result"] . "</span>";
+      }
+      elseif (!empty($this->extra_caption["many_results"]) && $this->total_results > 1) {
         $currentSort = $this->getCurrentSort();
         if($currentSort != 0) {
           $currentKey = array_search(abs($currentSort), $this->sortables["id"]);
@@ -1056,11 +1130,14 @@ class KwDatagrid {
       }
       if (count($this->applied_filters) == 1 && isset($this->extra_caption["single_filter"])) {
         $supercaption .= " <span class='filters'>"
-        . t($this->extra_caption["single_filter"], array("!filters" => implode(" ", $this->applied_filters))) . "</span>";
+        . t($this->extra_caption["single_filter"],
+            array("!filters" => implode(" ", $this->applied_filters))) . "</span>";
       }
       elseif (isset($this->extra_caption["many_filters"])) {
         $supercaption .= " <span class='filters'>"
-        . t($this->extra_caption["many_filters"], array("%nb_filters" => count($this->applied_filters), "!filters" => implode(" ", $this->applied_filters))) . "</span>";
+        . t($this->extra_caption["many_filters"],
+            array("%nb_filters" => count($this->applied_filters),
+                "!filters" => implode(" ", $this->applied_filters))) . "</span>";
       }
       $options['query'] = $this->transmitUrlParameters(TRUE);
       $supercaption .= " <span class='reset-filters'>"
@@ -1084,6 +1161,9 @@ class KwDatagrid {
       $datagrid = $this->buildModeMassEdition($rows, $supercaption);
     }
     else {
+      if (isset($_GET['_op']) && $_GET['_op'] == 'refresh') {
+        $this->op[] = 'partial-refresh';
+      }
       $datagrid = $this->buildModeList($rows, $supercaption);
     }
     return $datagrid;
@@ -1158,11 +1238,14 @@ class KwDatagrid {
   }
 
   private function buildModeList($rows, $supercaption) {
-    $datagrid = array(
-      "#prefix" => "<div id='" . $this->id . "' class='kw-datagrid'>",
-      "#suffix" => "</div>",
-      "#weight" => $this->weight
-    );
+    $refresh = $this->hasOp('partial-refresh');
+    if (!$refresh) {
+      $datagrid = array(
+          "#prefix" => "<div id='" . $this->id . "' class='kw-datagrid'>",
+          "#suffix" => "</div>",
+          "#weight" => $this->weight
+      );
+    }
     if ($this->title_mode != "caption") {
       $datagrid["title"] = array(
         "#markup" => (!empty($this->title) ? ("<" . $this->title_mode . ">" . $this->title . "</"
@@ -1172,7 +1255,7 @@ class KwDatagrid {
     }
     $before_blocks = array();
     $after_blocks = array();
-    if (!empty($this->related_blocks) && !empty($rows)) {
+    if (!empty($this->related_blocks) && !empty($rows) && !$refresh) {
       foreach ($this->related_blocks as $key => $block) {
         if ($block['position'] == 'after') {
           $after_blocks[$block["weight"]][] = $block;
@@ -1188,12 +1271,12 @@ class KwDatagrid {
         $after_output = $this->buildBlocks('after-block', $after_blocks, $rows, $datagrid);
       }
     }
-    if (!is_null($this->intro)) {
+    if (!is_null($this->intro) && !$refresh) {
       $datagrid["intro"] = array(
         "#markup" => "<div class='datagrid-intro'>" . $this->intro . "</div>"
       );
     }
-    if (!empty($before_blocks)) {
+    if (!empty($before_blocks) && !$refresh) {
       $datagrid = array_merge($datagrid, $before_output);
     }
     if (!empty($this->caption) || $this->title_mode == 'caption') {
@@ -1204,7 +1287,7 @@ class KwDatagrid {
       "#datagrid" => $this,
       "#rows" => $rows
     );
-    if ($this->form_display == 'standard') {
+    if ($this->form_display == 'standard' && !$refresh) {
       $form = $this->buildForm();
       if (!is_null($form) && ($this->getUnfilteredTotalResults() > 1
           || ($this->getUnfilteredTotalResults() > 0 && count($this->getConfigurableBlocks()) > 0)
@@ -1214,10 +1297,10 @@ class KwDatagrid {
         );
       }
     }
-    if (!empty($after_blocks)) {
+    if (!empty($after_blocks) && !$refresh) {
       $datagrid = array_merge($datagrid, $after_output);
     }
-    if (!is_null($this->outro)) {
+    if (!is_null($this->outro) && !$refresh) {
       $datagrid["outro"] = array(
         "#markup" => "<div class='datagrid-outro'>" . $this->outro . "</div>"
       );
@@ -1359,7 +1442,7 @@ class KwDatagrid {
     }
     // CAS 2 : valeur envoyée par adresse
     $order = isset($_GET['_s']) ? $_GET['_s'] : FALSE;
-    if($order !== FALSE && in_array(abs($order), $this->sortables["id"])) {
+    if($order !== FALSE && !empty($this->sortables) && in_array(abs($order), $this->sortables["id"])) {
       $this->current_sort = $order;
       if($this->persistant) {
         $this->storeInSession("sort", $this->current_sort, TRUE, $this->getDefaultOrderIndex());
@@ -1466,7 +1549,7 @@ class KwDatagrid {
     }
     // Ajout des champs
     foreach ($this->fields as $alias => $column) {
-      if ($column["hidden"]) {
+      if ($column["hidden"] && !$column["always_execute"]) {
         continue;
       }
       if ($column["selectable"]) {
@@ -1503,6 +1586,9 @@ class KwDatagrid {
       $logicalAnd = db_and();
       $logicalOr = db_or();
       $i = 0;
+      if (empty($this->filters)) {
+        $this->active_filters = array();
+      }
       foreach ($this->active_filters as $key => $activeFilter) {
         if (is_null($activeFilter["value"]) || trim($activeFilter["value"]) == "") {
           continue;
@@ -1614,15 +1700,28 @@ class KwDatagrid {
           }
           elseif (isset($this->filters["options"][$filterKey]["jointure"])) {
             $jointure = $this->filters["options"][$filterKey]["jointure"];
-            $query->leftJoin($jointure["table"], $jointure["alias"] . $i,
-              str_replace($jointure["alias"] . ".", $jointure["alias"] . $i . ".", $jointure["condition"])
-              . " AND " . $jointure["alias"] . $i . "." . $alias . "=:filter_key" . $i,
-              array(":filter_key" . $i => $expression[0]));
-            if ($op == "=") {
-              $logical1->isNotNull($jointure["alias"] . $i . "." . $alias);
+            if ($this->filters["type"][$filterKey] == KW_FILTRABLE_ENUM) {
+              $operator = '=';
             }
             else {
-              $logical1->isNull($jointure["alias"] . $i . "." . $alias);
+              $operator = $op;
+            }
+            if (!empty($jointure['filtering'])) {
+              $filtering = $jointure['filtering'];
+            }
+            else {
+              $filtering = $alias;
+            }
+            $filter_condition = str_replace($jointure["alias"] . ".", $jointure["alias"] . $i . ".", $jointure["condition"])
+              . " AND " . $jointure["alias"] . $i . "." . $filtering . ' ' . $operator ." :filter_key" . $i;
+            $filter_args = array(":filter_key" . $i => $expression[0]);
+            $query->leftJoin($jointure["table"], $jointure["alias"] . $i,
+                $filter_condition, $filter_args);
+            if ($this->filters["type"][$filterKey] != KW_FILTRABLE_ENUM || $op == "=") {
+              $logical1->isNotNull($jointure["alias"] . $i . "." . $filtering);
+            }
+            else {
+              $logical1->isNull($jointure["alias"] . $i . "." . $filtering);
             }
           }
         }
@@ -1656,6 +1755,21 @@ class KwDatagrid {
         }
         elseif (isset($this->filters["options"][$filterKey]["choices"]) && isset($this->filters["options"][$filterKey]["choices"][$activeFilter["value"]])) {
           $activeFilter["value"] = $this->filters["options"][$filterKey]["choices"][$activeFilter["value"]];
+        }
+        if (!empty($this->filters['options'][$filterKey]['display_callback'])) {
+          if (!empty($this->filters['options'][$filterKey]['display_args'])) {
+            $args = $this->filters['options'][$filterKey]['display_args'];
+            foreach ($args as $arg => $arg_value) {
+              if ($arg_value == ':filter') {
+                $args[$arg] = $activeFilter["value"];
+              }
+            }
+          }
+          else {
+            $args = array();
+          }
+          $activeFilter['value'] = call_user_func_array($this->filters['options'][$filterKey]['display_callback'],
+              $args);
         }
         $string .= t("<em>!field</em> !op %value", array(
           "!field" => drupal_strtolower($this->filters["label"][$filterKey]),
@@ -1691,29 +1805,41 @@ class KwDatagrid {
     $orders = array();
     $ranking_orders = array();
     if ($this->getCurrentSort() != 0) {
-      $user_asc = $this->getCurrentSort() > 0 ? "asc" : "desc";
+      $user_asc = $this->getCurrentSort() > 0 ? "ASC" : "DESC";
       $id = array_search(abs($this->getCurrentSort()), $this->sortables["id"]);
       foreach($this->sortables["aliases"][$id] as $alias) {
         if (isset($this->fields[$alias])) {
           $orders[] = $alias;
-          if(is_null($this->fields[$alias]["sort_expression"])) {
+          if (!is_null($this->fields[$alias]["sort_expression"])) {
+            $q_order = $this->fields[$alias]["sort_expression"];
+            $query->orderBy($q_order, $user_asc);
+          }
+          elseif (!is_null($this->fields[$alias]["table_field"])) {
             $q_order = $this->fields[$alias]["table_alias"] . "." . $this->fields[$alias]["table_field"];
             $ranking_orders[$q_order] = $user_asc;
+            $query->orderBy($q_order, $user_asc);
           }
-          else {
-            $q_order = $this->fields[$alias]["sort_expression"];
+          elseif (!is_null($this->fields[$alias]["expression"])) {
+            $q_order = $this->fields[$alias]["expression"];
+            $ranking_orders[$q_order] = $user_asc;
+            $query->orderBy($q_order, $user_asc);
           }
-          $query->orderBy($q_order, $user_asc);
         }
       }
     }
     // Tri par défaut
     foreach ($this->default_orders as $key => $order) {
       if (isset($this->fields[$order["column"]]) && !in_array($order["column"], $orders)) {
-        $q_order = $this->fields[$order["column"]]["table_alias"] . "."
-        . $this->fields[$order["column"]]["table_field"];
-        $query->orderBy($q_order, $order["order"]);
-        $ranking_orders[$q_order] = $order["order"];
+        if (!is_null($this->fields[$order["column"]]["table_field"])) {
+          $q_order = $this->fields[$order["column"]]["table_alias"] . "." . $this->fields[$order["column"]]["table_field"];
+          $query->orderBy($q_order, $order["order"]);
+          $ranking_orders[$q_order] = $order["order"];
+        }
+        elseif (!is_null($this->fields[$order["column"]]["expression"])) {
+          $q_order = $this->fields[$order["column"]]["expression"];
+          $query->orderBy($q_order, $order["order"]);
+          $ranking_orders[$q_order] = $order["order"];
+        }
       }
     }
     if ($this->mode == "item" && !is_null($this->key)) {
@@ -1930,11 +2056,6 @@ class KwDatagrid {
 
   public function transmitUrlParameters($reset = FALSE) {
     $exclude[] = 'q';
-    foreach($_GET as $key => $value) {
-      if (substr($key, 0, 5) == '_') {
-        $exclude[] = $key;
-      }
-    }
     $parameters = drupal_get_query_parameters(NULL, $exclude);
     $parameters['_id'] = $this->getId(); // Identifiant grille
     if ($reset) {

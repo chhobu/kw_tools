@@ -3,6 +3,10 @@
 .kw-datagrid {
   margin: 1em 0;
   clear: both;}
+.kw-datagrid .processing {
+  display: block;
+  position: absolute;
+  z-index: 99;}
 .kw-datagrid table.datagrid {
   width: 100%;}
 .kw-datagrid .form-item-filter-select {
@@ -101,7 +105,6 @@ td .digit {
   border-radius: 0 0 10px 10px;
   border-style: solid;
   border-width: 0px 1px 1px 1px;
-  float: right;
   margin: 0 0 0 0.5em;
   padding: 0.5em;}
 .datagrid-panel form {
@@ -121,3 +124,26 @@ td .digit {
   border-right: 0px;}
 .datagrid-panel td {
   line-height: 150%;}
+.datepopup-filter img {
+  vertical-align: middle;}
+.datepopup-filter label {
+  display: inline;
+  background-image: none;
+  padding: 0;}
+/* css for timepicker */
+.ui-timepicker-div .ui-widget-header { 
+  margin-bottom: 8px;}
+.ui-timepicker-div dl { 
+  text-align: left;}
+.ui-timepicker-div dl dt { 
+  height: 25px; 
+  margin-bottom: -25px;}
+.ui-timepicker-div dl dd { 
+  margin: 0 10px 10px 65px;}
+.ui-timepicker-div td { 
+  font-size: 90%;}
+.ui-tpicker-grid-label { 
+  background: none; 
+  border: none; 
+  margin: 0; 
+  padding: 0;}

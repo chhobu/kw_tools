@@ -97,7 +97,13 @@ function kw_datagrid_response() {
     $ajax = FALSE;
   }
   if ($ajax && !empty($constructor['function'])) {
+    if (!function_exists($constructor['function']) && !empty($constructor['required_file'])) {
+      require_once(DRUPAL_ROOT . '/' . $constructor['required_file']);
+    }
     $target = '#' . $_GET['_id'];
+    if (isset($_GET['_op']) && $_GET['_op'] == 'refresh') {
+      $target .= ' table.datagrid';
+    }
     $output = call_user_func_array($constructor["function"], is_null($constructor["args"]) ? array() : $constructor['args']);
     $commands[] = ajax_command_replace($target, drupal_render($output));
     $page = array('#type' => 'ajax', '#commands' => $commands);
@@ -105,7 +111,7 @@ function kw_datagrid_response() {
   }
   elseif (!empty($constructor['page'])) {
     drupal_goto($constructor['page'], array(
-      "query" => drupal_get_query_parameters(),
+      "query" => drupal_get_query_parameters($_GET, array('q', '_op')),
       "fragment" => $_GET["_id"]
     ));
   }
@@ -114,7 +120,6 @@ function kw_datagrid_response() {
       unset($_SESSION["kw_datagrid"][$_GET["_id"]]);
     }
     drupal_not_found();
-    die();
   }
 }
 
@@ -131,8 +136,6 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
   else {
     $filters_only = FALSE;
   }
-  $form["#attached"]["css"][] = drupal_get_path("module","kw_tools") . "/css/kw_form.css";
-  $form["#attached"]["js"][] = drupal_get_path("module","kw_tools") . "/js/kw_form.js";
   $parameters = $datagrid->transmitUrlParameters();
   if (!$filters_only) {
     $form["fieldset"] = array(
@@ -197,7 +200,6 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
       "#limit_validation_errors" => array(array('filter-select'))
     );
     $container["filters"] = array();
-
     if(count($datagrid->getActiveFilters()) > 0) {
       $container["filters"] = array(
         "#type" => "fieldset",
@@ -216,26 +218,82 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
         if ($filter === FALSE) {
           continue;
         }
+        $defaults_filter_value = array(
+          "#title" => $filters["label"][$filter],
+          "#default_value" => isset($form_state["input"]["filter-value"][$key]) ? $form_state["input"]["filter-value"][$key] : $activeFilter["value"],
+          "#name" => "filter-value[" . $key . "]"
+        );
         switch($filters["type"][$filter]) {
           case(KW_FILTRABLE_ENUM):
             $choices = kw_datagrid_get_enum_choices($filters, $filter);
-            $filter_value = array(
+            $filter_value = array_merge($defaults_filter_value, array(
               "#type" => "select",
-              "#title" => $filters["label"][$filter],
-              "#default_value" => isset($form_state["input"]["filter-value"][$key]) ? $form_state["input"]["filter-value"][$key] : $activeFilter["value"],
               "#options" => array_map("strip_tags", $choices),
-              "#name" => "filter-value[" . $key . "]"
-            );
+            ));
+            break;
+          case(KW_FILTRABLE_DATETIME):
+          case(KW_FILTRABLE_DATE):
+            drupal_add_library('system', 'ui.datepicker');
+            $settings = array();
+            $format = variable_get('date_format_just_the_date', 'm/d/Y');
+            if ($filters["type"][$filter] == KW_FILTRABLE_DATETIME) {
+              global $language;
+              drupal_add_library('system', 'ui.slider');
+              drupal_add_js(drupal_get_path('module', 'kw_tools') . '/js/jquery.ui.timepicker-addon.js');
+              $classes = array('datetimepickable', 'date');
+              $time_format = variable_get('date_format_just_the_time', 'H:i:s');
+              $time_format_js = str_replace(array('H', 'i', 's'),
+                  array('hh', 'mm', 'ss'), $time_format);
+              $settings['timeFormat'] = $time_format_js;
+            }
+            else {
+              $classes = array('datepickable', 'date');
+            }
+            $form_state['filtrable_dates_formats'][$key] = $format;
+            if (!empty($time_format)) {
+              $form_state['filtrable_dates_formats'][$key] .= ' ' . $time_format;
+            }
+            $format_js = str_replace(array('m', 'd', 'y', 'Y', 'H', 'i'),
+                array('mm', 'dd', 'y', 'yy', 'hh', 'ii'), $format);
+            $settings['dateFormat'] = $format_js;
+            $settings['changeYear'] = 'true';
+            $settings['changeMonth'] = 'true';
+            if (!empty($filters["options"][$filter]["datepicker"]) && is_array($filters["options"][$filter]["datepicker"])) {
+              foreach($filters["options"][$filter]["datepicker"] as $option => $value) {
+                $settings[$option] = $value;
+              }
+            }
+            $settings = addslashes(drupal_json_encode($settings));
+            $filter_value = array_merge($defaults_filter_value, array(
+              '#type' => 'textfield',
+              '#attributes' => array(
+                  'class' => $classes,
+                  'data-settings' => $settings
+              ),
+              '#size' => 10
+            ));
+            if (!$form_state['rebuild'] && !empty($filters['options'][$filter]['return_format'])
+                && !empty($filter_value['#default_value'])) {
+              if ($filters['options'][$filter]['return_format'] == 'timestamp') {
+                $timestamp = $filter_value['#default_value'];
+              }
+              else {
+                $datetime = DateTime::createFromFormat($filters['options'][$filter]['return_format'], $filter_value['#default_value']);
+                if ($datetime) {
+                  $timestamp = $datetime->getTimestamp();
+                }
+              }
+              if (!empty($timestamp)) {
+                $filter_value['#default_value'] = format_date($timestamp, 'custom', $form_state['filtrable_dates_formats'][$key]);
+              }
+            }
             break;
           case(KW_FILTRABLE_NUM):
             if (isset($filters["options"][$filter]["choices"])) {
-              $filter_value = array(
+              $filter_value = array_merge($defaults_filter_value, array(
                 "#type" => "select",
-                "#title" => $filters["label"][$filter],
-                "#default_value" => isset($form_state["input"]["filter-value"][$key]) ? $form_state["input"]["filter-value"][$key] : $activeFilter["value"],
                 "#options" => array('' => '---' . t("Select a value") . '---') + array_map("strip_tags", $filters["options"][$filter]["choices"]),
-                "#name" => "filter-value[" . $key . "]"
-              );
+              ));
               break;
             }
             if (!isset($filters["options"][$filter]["size"])) {
@@ -243,19 +301,16 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
             }
             $form["#validate"][] = "kw_datagrid_validate_numeric";
           default:
-            $filter_value = array(
+            $filter_value = array_merge($defaults_filter_value, array(
               "#type" => "textfield",
-              "#title" => $filters["label"][$filter],
-              "#default_value" => isset($form_state["input"]["filter-value"][$key]) ? $form_state["input"]["filter-value"][$key] : $activeFilter["value"],
               "#size" => isset($filters["options"][$filter]["size"]) ? $filters["options"][$filter]["size"] : 20,
               "#maxlength" => isset($filters["options"][$filter]["maxlength"]) ? $filters["options"][$filter]["maxlength"] : 255,
-              "#name" => "filter-value[" . $key . "]"
-            );
+            ));
             if (isset($filters["options"][$filter]["attributes"])) {
               $filter_value["#attributes"] = $filters["options"][$filter]["attributes"];
             }
         }
-        $op_options = kw_datagrid_get_operators($filters["type"][$filter]);
+        $op_options = kw_datagrid_get_operators($filters["type"][$filter], isset($filters['options'][$filter]['jointure']));
         if ($i > 0) {
           $container["filters"][$key]["filter-mode-" . $key] = array(
             "#type" => "select",
@@ -386,6 +441,8 @@ function kw_datagrid_filter_form($form, &$form_state, $args) {
   $form["#action"] = url($datagrid->getConstructor('page'), array(
     'query' => array_merge(is_null($constructor_params) ? array() : $constructor_params, $parameters)
   ));
+  $form["#attached"]["css"][] = drupal_get_path("module","kw_tools") . "/css/kw_form.css";
+  $form["#attached"]["js"][] = drupal_get_path("module","kw_tools") . "/js/kw_form.js";
   return $form;
 }
 
@@ -425,6 +482,7 @@ function kw_datagrid_filter_form_submit($form, &$form_state) {
   else if (!empty($values["filter-select"])) {
     $datagrid->addActiveFilter($values["filter-select"]);
   }
+  $filters = $datagrid->getFilters();
   foreach ($datagrid->getActiveFilters() as $key => $activeFilter) {
     $filter_mode = NULL;
     $filter_value = NULL;
@@ -433,6 +491,25 @@ function kw_datagrid_filter_form_submit($form, &$form_state) {
       $filter_mode = $values["filter-mode"][$key];
     }
     if(isset($values["filter-value"][$key])) {
+      foreach ($filters['aliases'] as $filter_key => $aliases) {
+        if (in_array($activeFilter['filter_id'], $aliases)) {
+          break;
+        }
+      }
+      if (in_array($filters['type'][$filter_key], array(KW_FILTRABLE_DATE, KW_FILTRABLE_DATETIME))) {
+        if (!empty($filters['options'][$filter_key]['return_format'])) {
+          $format = $form_state['filtrable_dates_formats'][$key];
+          $datetime = DateTime::createFromFormat($format, $values["filter-value"][$key]);
+          if ($datetime) {
+            if ($filters['options'][$filter_key]['return_format'] == 'timestamp') {
+              $values["filter-value"][$key] = $datetime->getTimestamp();
+            }
+            else {
+              $values["filter-value"][$key] = $datetime->format($filters['options'][$filter_key]['return_format']);
+            }
+          }
+        }
+      }
       $filter_value = $values["filter-value"][$key];
     }
     if(isset($values["filter-op"][$key])) {
@@ -469,7 +546,7 @@ function kw_datagrid_filter_form_submit($form, &$form_state) {
   }
   $query['_o'] = 'f';
   $form_state["redirect"] = array($datagrid->getConstructor('page'),
-    array("query" => $query));
+    array("query" => $query, 'fragment' => $datagrid->getId()));
 }
 
 function kw_datagrid_filter_form_reset($form, &$form_state) {
@@ -508,8 +585,9 @@ function kw_datagrid_get_enum_choices($filters, $filter) {
   return $choices;
 }
 
-function kw_datagrid_get_operators($type) {
+function kw_datagrid_get_operators($type, $query = FALSE) {
   switch($type) {
+    case(KW_FILTRABLE_DATETIME):
     case(KW_FILTRABLE_DATE):
     case(KW_FILTRABLE_NUM):
       return array(
@@ -526,20 +604,34 @@ function kw_datagrid_get_operators($type) {
         "NOT_EQUAL" => t("is not in")
       );
     default :
-      return array(
-        "EQUAL" => t("exact expression"),
-        "CONTAIN" => t("containing expression"),
-        "BEGIN" => t("beginning by this expression"),
-        "END" => t("ending by this expression"),
-        "CONTAIN_ONE" => t("containing at least one word"),
-        "CONTAIN_ALL" => t("containing all words"),
-        "NOT_EQUAL" => t("different from"),
-        "NOT_CONTAIN" => t("not containing this expression"),
-        "NOT_BEGIN" => t("not beginning by this expression"),
-        "NOT_END" => t("not ending by this expression"),
-        "NOT_CONTAIN_ONE" => t("not containing one of these words"),
-        "NOT_CONTAIN_ALL" => t("not containing all of these words")
-      );
+      if ($query) {
+        return array(
+          "EQUAL" => t("exact expression"),
+          "CONTAIN" => t("containing expression"),
+          "BEGIN" => t("beginning by this expression"),
+          "END" => t("ending by this expression"),
+          "NOT_EQUAL" => t("different from"),
+          "NOT_CONTAIN" => t("not containing this expression"),
+          "NOT_BEGIN" => t("not beginning by this expression"),
+          "NOT_END" => t("not ending by this expression"),
+        );
+      }
+      else {
+        return array(
+            "EQUAL" => t("exact expression"),
+            "CONTAIN" => t("containing expression"),
+            "BEGIN" => t("beginning by this expression"),
+            "END" => t("ending by this expression"),
+            "CONTAIN_ONE" => t("containing at least one word"),
+            "CONTAIN_ALL" => t("containing all words"),
+            "NOT_EQUAL" => t("different from"),
+            "NOT_CONTAIN" => t("not containing this expression"),
+            "NOT_BEGIN" => t("not beginning by this expression"),
+            "NOT_END" => t("not ending by this expression"),
+            "NOT_CONTAIN_ONE" => t("not containing one of these words"),
+            "NOT_CONTAIN_ALL" => t("not containing all of these words")
+        );
+      }
   }
 }
 

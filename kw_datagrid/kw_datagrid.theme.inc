@@ -11,6 +11,7 @@ function theme_datagrid($variables) {
   $ajax = $datagrid->isUsingAjax();
   $empty = $datagrid->getEmptyText();
   $columns = $datagrid->getColumns();
+  $refresh = $datagrid->hasOp('partial-refresh');
   drupal_add_css(drupal_get_path("module", "kw_datagrid") . "/kw_datagrid.css");
   if($ajax) {
     drupal_add_js('misc/ajax.js');
@@ -162,7 +163,9 @@ function theme_datagrid($variables) {
   $footer_output_part_two = '';
   $choices = $datagrid->getPagerOptions('choices');
   $parameters = $datagrid->transmitUrlParameters();
-  if (($datagrid->getPagerOptions('display') == 'advanced' || $datagrid->getFormDisplay() == 'advanced') && count($choices) > 0) {
+  if (($datagrid->getPagerOptions('display') == 'advanced' || $datagrid->getFormDisplay() == 'advanced')
+      && count($choices) > 0) {
+    $pg_parameters = $parameters;
     $items = array();
     $all = FALSE;
     sort($choices);
@@ -181,21 +184,21 @@ function theme_datagrid($variables) {
         );
       }
       else {
-        $parameters['_g'] = $choice;
+        $pg_parameters['_g'] = $choice;
         $items[$choice] = array(
           'class' => array('pager-choices'),
           'data' => theme('datagrid_pager_link', array(
             'text' => $choice,
             'page_new' => $datagrid->getCurrentPage(),
             'datagrid' => $datagrid,
-            'parameters' => $parameters,
+            'parameters' => $pg_parameters,
             'attributes' => array('class' => array('pager-item'), 'title' => t('Display !x results per page', array('!x' => $choice)))
           ))
         );
       }
     }
     if ($all && ($datagrid->getTotalResults() > $datagrid->getPager() || $datagrid->getPager() == 0)) {
-      $parameters['_g'] = 0;
+      $pg_parameters['_g'] = 0;
       $items[0]['class'][] = 'pager-choices-all';
       if ($datagrid->getPager() == 0) {
         $items[0]['class'][] = 'pager-current';
@@ -206,7 +209,7 @@ function theme_datagrid($variables) {
           'text' => t('All'),
           'page_new' => $datagrid->getCurrentPage(),
           'datagrid' => $datagrid,
-          'parameters' => $parameters,
+          'parameters' => $pg_parameters,
           'attributes' => array('class' => array('pager-item'))
         ));
       }
@@ -225,16 +228,34 @@ function theme_datagrid($variables) {
       );
     }
   }
-  if ($datagrid->getFormDisplay() != 'standard') {
-    $footer_output_part_two .= theme('datagrid_advanced_controls', array('datagrid' => $datagrid));
+  if ($datagrid->getAutoRefresh() > 0) {
+    drupal_add_js(drupal_get_path('module', 'kw_datagrid') . '/kw_datagrid.js');
+    $footer_output_part_one .= '<div class="datagrid-bottom-links links">';
+    $attributes['class'][] = 'refresh-link';
+    $attributes['data-refresh'] = $datagrid->getAutoRefresh() * 1000;
+    if ($datagrid->isUsingAjax()) {
+      $attributes["class"][] = "use-ajax";
+    }
+    $parameters['_op'] = 'refresh';
+    $footer_output_part_one .= l(t('Refresh data'), $datagrid->getPath(), array(
+        'query' => $parameters,
+        'fragment' => $datagrid->getId(),
+        'attributes' => $attributes
+    ));
+    $footer_output_part_one .= '</div>';
   }
-  if (!empty($footer_output_part_one) || !empty($footer_output_part_two)) {
+  if (!empty($footer_output_part_one)) {
     $output .= "<tfoot><tr><td colspan='" . $nb_cols . "'>"
-    . (!empty($footer_output_part_one) ? $footer_output_part_one : '')
-    . (!empty($footer_output_part_two) ? '<div class="datagrid-controls">' . $footer_output_part_two . '</div>' : '')
+    . $footer_output_part_one
     . "</td></tr></tfoot>";
   }
   $output .= "</table>\n";
+  if (!$refresh && $datagrid->getFormDisplay() != 'standard') {
+    $footer_output_part_two .= theme('datagrid_advanced_controls', array('datagrid' => $datagrid));
+  }
+  if (!$refresh && !empty($footer_output_part_two)) {
+    $output .= '<div class="datagrid-controls">' . $footer_output_part_two . '</div>';
+  }
   return $output;
 }
 
@@ -496,7 +517,7 @@ function theme_datagrid_pager_link($variables) {
       $attributes['title'] = t('Go to page @number', array('@number' => $text));
     }
   }
-  if($datagrid->isUsingAjax()) {
+  if ($datagrid->isUsingAjax()) {
     $attributes["class"][] = "use-ajax";
   }
   return l($text, $datagrid->getPath(), array(
@@ -520,16 +541,21 @@ function theme_datagrid_active_filters($variables) {
   $rows = array();
   foreach($children as $child) {
     $row["logical"] = array(
-      "data" => (isset($form[$child]["filter-mode-" . $child]) ? theme($form[$child]["filter-mode-" . $child]["#type"], array("element" => $form[$child]["filter-mode-" .$child])) : "")
+      "data" => (isset($form[$child]["filter-mode-" . $child]) ?
+          theme($form[$child]["filter-mode-" . $child]["#type"],
+              array("element" => $form[$child]["filter-mode-" .$child])) : "")
     );
     $row["field"] = array(
-      "data" => theme("form_element_label", array("element" => $form[$child]["filter-value-" .$child]))
+      "data" => theme("form_element_label",
+          array("element" => $form[$child]["filter-value-" .$child]))
     );
     $row["operator"] = array(
-      "data" => theme($form[$child]["filter-op-" . $child]["#type"], array("element" => $form[$child]["filter-op-" .$child]))
+      "data" => theme($form[$child]["filter-op-" . $child]["#type"],
+          array("element" => $form[$child]["filter-op-" .$child]))
     );
     $row["value"] = array(
-      "data" => theme($form[$child]["filter-value-" . $child]["#type"], array("element" => $form[$child]["filter-value-" .$child]))
+      "data" => theme($form[$child]["filter-value-" . $child]["#type"],
+          array("element" => $form[$child]["filter-value-" .$child]))
     );
     $row["remove"] = array(
       "data" => drupal_render($form[$child]["filter-remove-" .$child])
@@ -690,7 +716,8 @@ function theme_datagrid_advanced_controls($variables) {
       $output .= "</div>";
     }
     // Tris
-    if (count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0) {
+    $sortables = $datagrid->getSortables();
+    if (!empty($sortables) && count(array_keys($datagrid->getSortables("specific"), TRUE)) > 0) {
       if ($datagrid->getCurrentSort() != $datagrid->getDefaultOrderIndex()) {
         $has_custom_sort = TRUE;
       }
@@ -808,9 +835,9 @@ function theme_datagrid_advanced_controls($variables) {
             'query' => $columns_parameters,
             'attributes' => array('class' => $classes)
         ));
-        //$row[] = array('data' => $action);
         $row[] = $action;
         $rows[] = implode(' : ', $row);
+        //$row[] = array('data' => $action);
         //$rows[] = $row;
       }
       $panel = theme('item_list', array('items' => $rows, 'attributes' => array('class' => 'inline')));

@@ -27,6 +27,10 @@ function kw_datagrid_schema() {
       'parameters' => array(
         'type' => 'text',
         'length' => 1000
+      ),
+      'required_file' => array(
+        'type' => 'varchar',
+        'length' => 255
       )
     ),
     'primary key' => array('datagrid_id'),
@@ -37,9 +41,22 @@ function kw_datagrid_schema() {
   return $schema;
 }
 
-function kw_datagrid_update_7000() {
-  $ret = array();
+/**
+ * Adds a new table for kw_datagrid handling
+ */
+function kw_datagrid_update_7000(&$sandbox) {
   $schema = kw_datagrid_schema();
   db_create_table('kw_datagrid', $schema['kw_datagrid']);
-  return $ret;
+  return t('Creation of table kw_datagrid');
+}
+
+/**
+ * Adds a new field in kw_datagrid table
+ */
+function kw_datagrid_update_7001(&$sandbox) {
+  db_add_field('kw_datagrid', 'required_file', array(
+      'type' => 'varchar',
+      'length' => 255
+  ));
+  return t('New field required_file added in table kw_datagrid');
 }
