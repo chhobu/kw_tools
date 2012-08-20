@@ -1217,6 +1217,7 @@ class KwDatagrid {
         unset($next["rows"][$key]);
       }
     }
+    $path = (isset($this->linked_node)) ? "node/" . $this->linked_node->nid : $this->getConstructor('page');
     $datagrid = array(
       "#theme" => "datagrid_item_navigation",
       "#title" => array(
@@ -1224,11 +1225,11 @@ class KwDatagrid {
         "node" => isset($this->linked_node) ? l($this->linked_node->title, "node/".$this->linked_node->nid) : NULL,
         "custom" => isset($this->mode_context["title"]) ? $this->mode_context["title"] : NULL,
         "list" => count($this->active_filters) == 0 ?
-          l($this->extra_caption["backlink"], "node/" . $this->linked_node->nid,
+          l($this->extra_caption["backlink"], $path,
             array("fragment" => $this->id, "query" => array("_p" => isset($new_page) ? $new_page : 0), "attributes" => array("class" => "back")))
-          : l($this->extra_caption["filtered_backlink"], "node/" . $this->linked_node->nid,
+          : l($this->extra_caption["filtered_backlink"], "node/" .$path,
             array("fragment" => $this->id, "query" => array("_p" => isset($new_page) ? $new_page : 0), "attributes" => array("class" => "back"))) . " | ".
-            l($this->extra_caption["unfiltered_backlink"], "node/" . $this->linked_node->nid,
+            l($this->extra_caption["unfiltered_backlink"], "node/" . $path,
             array("fragment" => $this->id, "query" => array("_r" => 1), "attributes" => array("class" => "back"))),
         ),
       "#next" => $next,
