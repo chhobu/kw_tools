@@ -12,7 +12,8 @@ function theme_datagrid($variables) {
   $empty = $datagrid->getEmptyText();
   $columns = $datagrid->getColumns();
   $refresh = $datagrid->hasOp('partial-refresh');
-  drupal_add_css(drupal_get_path("module", "kw_datagrid") . "/kw_datagrid.css");
+  drupal_add_css(drupal_get_path("module", "kw_datagrid") . "/kw_datagrid.css",
+      array('every_page' => TRUE));
   if($ajax) {
     drupal_add_js('misc/ajax.js');
     drupal_add_js('misc/jquery.form.js');
@@ -567,7 +568,8 @@ function theme_datagrid_active_filters($variables) {
 }
 
 function theme_datagrid_item_navigation($variables) {
-  drupal_add_css(drupal_get_path("module","kw_datagrid") . "/kw_datagrid.css");
+  drupal_add_css(drupal_get_path("module","kw_datagrid") . "/kw_datagrid.css",
+      array('every_page' => TRUE));
   $output = "<div class='kw-datagrid-item'>";
   if (!is_null($variables["title"])) {
     $title_content = "";
