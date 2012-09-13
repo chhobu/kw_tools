@@ -2,6 +2,6 @@
 name = KDatagrid
 description = "A custom datagrid system to display data in tables"
 core = 7.x
-version = 7.x-0.x-dev
+version = 7.x-1.0-dev
 package = Kweb Tools
 files[] = kw_datagrid.inc

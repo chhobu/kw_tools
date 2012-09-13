@@ -2,5 +2,5 @@
 name = KTools
 description = "Some custom helper functions for homemade modules..."
 core = 7.x
-version = 7.x-0.x-dev
+version = 7.x-1.0-dev
 package = Kweb Tools
