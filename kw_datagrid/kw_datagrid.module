@@ -768,3 +768,14 @@ function kw_datagrid_mass_edit_form_submit($form, &$form_state) {
   }
   unset($_GET["mass_edit"]);
 }
+
+function kw_datagrid_potx() {
+  $strings =array(
+      "many_results" => t("%total_results results found, order by !order."),
+      "single_result_filtered" => t("Only 1 result found (out of %unfiltered_total)."),
+      "many_results_filtered" => t("%total_results results found (out of %unfiltered_total), order by !order."),
+      "pager" => t("Displaying results %start to %end."),
+      "single_filter" => t("1 filter active : !filters."),
+      "many_filters" => t("%nb_filters filters active : !filters.")
+  );
+}

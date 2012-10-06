@@ -11,7 +11,7 @@
 function kw_tools_menu() {
   $items = array();
   $items["kw/help"] = array(
-    'title' => t('Kweb development help page'),
+    'title' => 'Kweb development help page',
     'page callback' =>  'kw_tools_help_page',
     'access arguments' => array('access administration pages'),
     'type' => MENU_CALLBACK

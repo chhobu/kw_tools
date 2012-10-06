@@ -905,9 +905,9 @@ class KwDatagrid {
     $rows = array();
     $subqueries = array();
     $final_callbacks = array();
-    if($this->total_results > 0) {
+    $orig_rows = array();
+    if ($this->total_results > 0) {
       $result = $query->execute();
-      $orig_rows = array();
       $pattern = "/\:(\w+)/";
       $i = $this->getCurrentPage() * $this->pager;
       foreach ($result as $key => $row) {

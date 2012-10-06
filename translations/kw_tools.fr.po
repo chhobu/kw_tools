@@ -12,23 +12,21 @@
 #  kw_datagrid/kw_datagrid.theme.inc: n/a
 #  kw_datagrid/kw_datagrid.module: n/a
 #  kw_tags/kw_tags.module: n/a
+#  kw_datagrid/kw_datagrid.install: n/a
+#  kw_datagrid/kw_datagrid.js: n/a
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
-"POT-Creation-Date: 2012-02-11 18:34+0100\n"
-"PO-Revision-Date: 2012-02-11 18:34+0100\n"
+"POT-Creation-Date: 2012-10-06 15:12+0200\n"
+"PO-Revision-Date: 2012-10-06 15:12+0200\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: French <EMAIL@ADDRESS>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n!=1);\n"
-
-#: kw_tools.module:14
-msgid "Kweb development help page"
-msgstr "Kweb - page d'aide au développement"
 
 #: kw_tools.module:27
 msgid "kw_tools footer notes"
@@ -38,73 +36,87 @@ msgstr "Notes de bas de page du module kw_tools"
 msgid "Nota bene"
 msgstr "Nota bene"
 
-#: kw_tools.module:59
-msgid "Made by !link"
-msgstr "Réalisation : !link"
-
 #: kw_tools.module:60
-msgid "Krassweb Korporation"
-msgstr "Krassweb Korporation"
-
-#: kw_tools.module:64
 msgid "Not connected"
 msgstr "Non connecté"
 
-#: kw_tools.module:67
+#: kw_tools.module:63
 msgid "Connected as !user"
 msgstr "Connecté en tant que !user"
 
-#: kw_tools.module:72
+#: kw_tools.module:69
 msgid "Back to top"
 msgstr "Retour en haut de page"
 
-#: kw_tools.module:81
+#: kw_tools.module:78
 msgid "Just the date"
 msgstr "Uniquement la date"
 
-#: kw_tools.module:82
+#: kw_tools.module:79
 msgid "Just the time"
 msgstr "Uniquement l'heure"
 
-#: kw_tools.module:215
+#: kw_tools.module:191
+msgid "!sec s"
+msgstr "!sec s"
+
+#: kw_tools.module:192
+msgid "!mn min"
+msgstr "!mn min"
+
+#: kw_tools.module:194
+msgid "!h h"
+msgstr "!h h"
+
+#: kw_tools.module:234
 msgid "Type"
 msgstr "Type"
 
-#: kw_tools.module:216;255;275
+#: kw_tools.module:235;274;294
 msgid "Settings"
 msgstr "Paramètres"
 
-#: kw_tools.module:217
+#: kw_tools.module:236
 msgid "Instance settings"
 msgstr "Paramètres de l'instance"
 
-#: kw_tools.module:218
+#: kw_tools.module:237
 msgid "Widgets"
 msgstr "Widgets"
 
-#: kw_tools.module:249;256;276
+#: kw_tools.module:268;275;295
 msgid "Field types"
 msgstr "Types de champs"
 
-#: kw_tools.module:252
+#: kw_tools.module:271
 msgid "Widget types"
 msgstr "Types de widgets"
 
-#: kw_tools.module:254
+#: kw_tools.module:273
 msgid "Widget"
 msgstr "Widget"
 
-#: kw_tools.module:272
+#: kw_tools.module:291
 msgid "Formatters"
 msgstr "Eléments de formatages"
 
-#: kw_tools.module:274
+#: kw_tools.module:293
 msgid "Formatter"
 msgstr "Elément de formatage"
 
-#: kw_tools.module:292
+#: kw_tools.module:311
 msgid "Permission list"
 msgstr "Liste des permissions"
+
+#: kw_tools.module:200
+msgid "1 day"
+msgid_plural "!days days"
+msgstr[0] "@count jour"
+msgstr[1] "@count jours"
+
+#: kw_tools.module:14
+msgid "Kweb development help page"
+msgstr "Kweb - page d'aide au développement"
 
 #: kw_tools.info:0
 msgid "KTools"
@@ -142,409 +154,485 @@ msgstr "Retirer la sélection"
 msgid "Remove all"
 msgstr "Retirer tout"
 
-#: kw_datagrid/kw_datagrid.inc:108
+#: js/kw_form.js:0
+msgid "Choose Time"
+msgstr "Sélectionner une valeur"
+
+#: js/kw_form.js:0
+msgid "Time"
+msgstr "Heure"
+
+#: js/kw_form.js:0
+msgid "Hour"
+msgstr "Heure"
+
+#: js/kw_form.js:0
+msgid "Minute"
+msgstr "Minute"
+
+#: js/kw_form.js:0
+msgid "Second"
+msgstr "Seconde"
+
+#: js/kw_form.js:0
+msgid "Millisecond"
+msgstr "Milliseconde"
+
+#: js/kw_form.js:0
+msgid "Now"
+msgstr "Maintenant"
+
+#: js/kw_form.js:0
+msgid "Done"
+msgstr "Terminé"
+
+#: kw_datagrid/kw_datagrid.inc:111
+msgid "No results found."
+msgstr "Aucun résultat trouvé."
+
+#: kw_datagrid/kw_datagrid.inc:112
+msgid "Only 1 result found."
+msgstr "1 seul résultat trouvé."
+
+#: kw_datagrid/kw_datagrid.inc:119
 msgid "View full list"
 msgstr "Retour à la liste complète"
 
-#: kw_datagrid/kw_datagrid.inc:109
+#: kw_datagrid/kw_datagrid.inc:120
 msgid "View filtered list"
 msgstr "Voir la liste filtrée"
 
-#: kw_datagrid/kw_datagrid.inc:110
+#: kw_datagrid/kw_datagrid.inc:121
 msgid "View unfiltered list"
 msgstr "Retour à la liste complète"
 
-#: kw_datagrid/kw_datagrid.inc:111
+#: kw_datagrid/kw_datagrid.inc:122
 msgid "Next"
 msgstr "Suivant"
 
-#: kw_datagrid/kw_datagrid.inc:112
+#: kw_datagrid/kw_datagrid.inc:123
 msgid "Previous"
 msgstr "Précédent"
 
-#: kw_datagrid/kw_datagrid.inc:865
+#: kw_datagrid/kw_datagrid.inc:1056
 msgid "(None)"
 msgstr "(Aucun)"
 
-#: kw_datagrid/kw_datagrid.inc:899;920
+#: kw_datagrid/kw_datagrid.inc:1105;1126
 msgid "default"
 msgstr "par défaut"
 
-#: kw_datagrid/kw_datagrid.inc:901;922
+#: kw_datagrid/kw_datagrid.inc:1107;1128
 msgid "ascending"
 msgstr "croissant"
 
-#: kw_datagrid/kw_datagrid.inc:901;922
+#: kw_datagrid/kw_datagrid.inc:1107;1128
 msgid "descending"
 msgstr "décroissant"
 
-#: kw_datagrid/kw_datagrid.inc:935
+#: kw_datagrid/kw_datagrid.inc:1144
 msgid "(Remove all filters)"
 msgstr "(Enlever tous les filtres)"
 
-#: kw_datagrid/kw_datagrid.inc:945
+#: kw_datagrid/kw_datagrid.inc:1154
 msgid "No results found matching your criteria. Try changing the filters values."
 msgstr ""
 "Aucun résultat correspondant à vos critères. Essayez de modifier "
 "les filtres de recherche."
 
-#: kw_datagrid/kw_datagrid.inc:968
+#: kw_datagrid/kw_datagrid.inc:1180
 msgid "Filtered :"
 msgstr "Filtré :"
 
-#: kw_datagrid/kw_datagrid.inc:971
+#: kw_datagrid/kw_datagrid.inc:1183
 msgid "result !rank of !total"
 msgstr "résultat !rank sur !total"
 
-#: kw_datagrid/kw_datagrid.inc:975
+#: kw_datagrid/kw_datagrid.inc:1187
 msgid "unmatched result"
 msgstr "résultat hors de la recherche"
 
-#: kw_datagrid/kw_datagrid.inc:1523
+#: kw_datagrid/kw_datagrid.inc:1775
 msgid "<em>!field</em> !op %value"
 msgstr "<em>!field</em> !op %value "
 
-#: kw_datagrid/kw_datagrid.inc:1760
+#: kw_datagrid/kw_datagrid.inc:2024
 msgid "Hide !title"
 msgstr "Cacher !title"
 
-#: kw_datagrid/kw_datagrid.inc:1761
+#: kw_datagrid/kw_datagrid.inc:2025
 msgid "Show !title"
 msgstr "Afficher !title"
 
-#: kw_datagrid/kw_datagrid.theme.inc:96
+#: kw_datagrid/kw_datagrid.theme.inc:98
 msgid "Mass modification of !item data"
 msgstr "Edition en masse des données de type !item"
 
-#: kw_datagrid/kw_datagrid.theme.inc:192
+#: kw_datagrid/kw_datagrid.theme.inc:196
 msgid "Display !x results per page"
 msgstr "Afficher !x résultats par page"
 
-#: kw_datagrid/kw_datagrid.theme.inc:202;206
+#: kw_datagrid/kw_datagrid.theme.inc:206;210
 msgid "All"
 msgstr "Tous / Toutes"
 
-#: kw_datagrid/kw_datagrid.theme.inc:217
+#: kw_datagrid/kw_datagrid.theme.inc:221
 msgid "Results per page :"
 msgstr "Résultats par page :"
 
-#: kw_datagrid/kw_datagrid.theme.inc:244
+#: kw_datagrid/kw_datagrid.theme.inc:241
+msgid "Refresh data"
+msgstr "Recharger les données"
+
+#: kw_datagrid/kw_datagrid.theme.inc:266
 msgid "sort by @s"
 msgstr "trier par @s"
 
-#: kw_datagrid/kw_datagrid.theme.inc:310;486
+#: kw_datagrid/kw_datagrid.theme.inc:332;508
 msgid "« first"
 msgstr "« premier"
 
-#: kw_datagrid/kw_datagrid.theme.inc:311;487
+#: kw_datagrid/kw_datagrid.theme.inc:333;509
 msgid "‹ previous"
 msgstr "‹ précédent"
 
-#: kw_datagrid/kw_datagrid.theme.inc:312;488
+#: kw_datagrid/kw_datagrid.theme.inc:334;510
 msgid "next ›"
 msgstr "suivant ›"
 
-#: kw_datagrid/kw_datagrid.theme.inc:313;489
+#: kw_datagrid/kw_datagrid.theme.inc:335;511
 msgid "last »"
 msgstr "dernier »"
 
-#: kw_datagrid/kw_datagrid.theme.inc:377
+#: kw_datagrid/kw_datagrid.theme.inc:399
 msgid "Pages :"
 msgstr "Pages :"
 
-#: kw_datagrid/kw_datagrid.theme.inc:486
+#: kw_datagrid/kw_datagrid.theme.inc:508
 msgid "Go to first page"
 msgstr "Aller à la première page"
 
-#: kw_datagrid/kw_datagrid.theme.inc:487
+#: kw_datagrid/kw_datagrid.theme.inc:509
 msgid "Go to previous page"
 msgstr "Aller à la page précédente"
 
-#: kw_datagrid/kw_datagrid.theme.inc:488
+#: kw_datagrid/kw_datagrid.theme.inc:510
 msgid "Go to next page"
 msgstr "Aller à la page suivante"
 
-#: kw_datagrid/kw_datagrid.theme.inc:489
+#: kw_datagrid/kw_datagrid.theme.inc:511
 msgid "Go to last page"
 msgstr "Aller à la dernière page"
 
-#: kw_datagrid/kw_datagrid.theme.inc:496
+#: kw_datagrid/kw_datagrid.theme.inc:518
 msgid "Go to page @number"
 msgstr "Aller à la page @number"
 
-#: kw_datagrid/kw_datagrid.theme.inc:514
+#: kw_datagrid/kw_datagrid.theme.inc:536
 msgid "And/or"
 msgstr "Et/ou"
 
-#: kw_datagrid/kw_datagrid.theme.inc:515
+#: kw_datagrid/kw_datagrid.theme.inc:537
 msgid "Field"
 msgstr "Champ"
 
-#: kw_datagrid/kw_datagrid.theme.inc:516
+#: kw_datagrid/kw_datagrid.theme.inc:538
 msgid "Operator"
 msgstr "Opérateur"
 
-#: kw_datagrid/kw_datagrid.theme.inc:517
+#: kw_datagrid/kw_datagrid.theme.inc:539
 msgid "Value"
 msgstr "Valeur"
 
-#: kw_datagrid/kw_datagrid.theme.inc:677
+#: kw_datagrid/kw_datagrid.theme.inc:705
 msgid "Hide filter panel"
 msgstr "Masquer le contrôle des filtres"
 
-#: kw_datagrid/kw_datagrid.theme.inc:685
+#: kw_datagrid/kw_datagrid.theme.inc:713
 msgid "Show filter panel"
 msgstr "Afficher le contrôle des filtres"
 
-#: kw_datagrid/kw_datagrid.theme.inc:706
+#: kw_datagrid/kw_datagrid.theme.inc:735
 msgid "Hide sort panel"
 msgstr "Masquer le contrôle des tris"
 
-#: kw_datagrid/kw_datagrid.theme.inc:731
+#: kw_datagrid/kw_datagrid.theme.inc:760
 msgid "Ascending"
 msgstr "Croissant"
 
-#: kw_datagrid/kw_datagrid.theme.inc:733
+#: kw_datagrid/kw_datagrid.theme.inc:762
 msgid "Sort by !name ascending"
 msgstr "Trier par !name croissant"
 
-#: kw_datagrid/kw_datagrid.theme.inc:738
+#: kw_datagrid/kw_datagrid.theme.inc:767
 msgid "Descending"
 msgstr "Décroissant"
 
-#: kw_datagrid/kw_datagrid.theme.inc:740
+#: kw_datagrid/kw_datagrid.theme.inc:769
 msgid "Sort by !name descending"
 msgstr "Trier par !name décroissant"
 
-#: kw_datagrid/kw_datagrid.theme.inc:746
+#: kw_datagrid/kw_datagrid.theme.inc:775
 msgid "Sort parameter"
 msgstr "Critère de tri"
 
-#: kw_datagrid/kw_datagrid.theme.inc:746
+#: kw_datagrid/kw_datagrid.theme.inc:775
 msgid "Sort order"
-msgstr "Order de tri"
+msgstr "Ordre de tri"
 
-#: kw_datagrid/kw_datagrid.theme.inc:751
+#: kw_datagrid/kw_datagrid.theme.inc:780
 msgid "Show sort panel"
 msgstr "Afficher le contrôle des tris"
 
-#: kw_datagrid/kw_datagrid.theme.inc:774
+#: kw_datagrid/kw_datagrid.theme.inc:803
 msgid "Hide columns panel"
 msgstr "Masquer le contrôle des colonnes"
 
-#: kw_datagrid/kw_datagrid.theme.inc:780
+#: kw_datagrid/kw_datagrid.theme.inc:809
 msgid "Column"
 msgstr "Colonne"
 
-#: kw_datagrid/kw_datagrid.theme.inc:781
+#: kw_datagrid/kw_datagrid.theme.inc:810
 msgid "Action"
 msgstr "Action"
 
-#: kw_datagrid/kw_datagrid.theme.inc:799
+#: kw_datagrid/kw_datagrid.theme.inc:828
 msgid "Hide"
 msgstr "Masquer"
 
-#: kw_datagrid/kw_datagrid.theme.inc:805
+#: kw_datagrid/kw_datagrid.theme.inc:834
 msgid "Display"
 msgstr "Affichage"
 
-#: kw_datagrid/kw_datagrid.theme.inc:821
+#: kw_datagrid/kw_datagrid.theme.inc:850
 msgid "Show columns panel"
 msgstr "Afficher le contrôle des colonnes"
 
-#: kw_datagrid/kw_datagrid.theme.inc:871
+#: kw_datagrid/kw_datagrid.theme.inc:900
 msgid "Reset"
 msgstr "Réinitialiser"
 
-#: kw_datagrid/kw_datagrid.module:140
+#: kw_datagrid/kw_datagrid.module:143
 msgid "Filter results"
 msgstr "Filtrer les résultats"
 
-#: kw_datagrid/kw_datagrid.module:142
+#: kw_datagrid/kw_datagrid.module:145
 msgid "Display options"
 msgstr "Options d'affichage"
 
-#: kw_datagrid/kw_datagrid.module:163
+#: kw_datagrid/kw_datagrid.module:166
 msgid "-- Select a filter --"
 msgstr "-- Choisissez un filtre --"
 
-#: kw_datagrid/kw_datagrid.module:183
+#: kw_datagrid/kw_datagrid.module:186
 msgid "Add a filter"
 msgstr "Ajouter un filtre"
 
-#: kw_datagrid/kw_datagrid.module:194 kw_tags/kw_tags.module:87
+#: kw_datagrid/kw_datagrid.module:197 kw_tags/kw_tags.module:87
 msgid "Add"
 msgstr "Ajouter"
 
-#: kw_datagrid/kw_datagrid.module:203
+#: kw_datagrid/kw_datagrid.module:206
 msgid "Active filters"
 msgstr "Filtres appliqués"
 
-#: kw_datagrid/kw_datagrid.module:209
+#: kw_datagrid/kw_datagrid.module:212
 msgid "AND"
 msgstr "ET"
 
-#: kw_datagrid/kw_datagrid.module:210
+#: kw_datagrid/kw_datagrid.module:213
 msgid "OR"
 msgstr "OU"
 
-#: kw_datagrid/kw_datagrid.module:235;482;485
+#: kw_datagrid/kw_datagrid.module:295;561;564
 msgid "Select a value"
 msgstr "Sélectionner une valeur"
 
-#: kw_datagrid/kw_datagrid.module:278
+#: kw_datagrid/kw_datagrid.module:334
 msgid "Remove this filter"
 msgstr "Enlever ce filtre"
 
-#: kw_datagrid/kw_datagrid.module:279
+#: kw_datagrid/kw_datagrid.module:335
 msgid "Remove"
 msgstr "Retirer"
 
-#: kw_datagrid/kw_datagrid.module:300
+#: kw_datagrid/kw_datagrid.module:356
 msgid "Display columns"
 msgstr "Colonnes à afficher"
 
-#: kw_datagrid/kw_datagrid.module:319
+#: kw_datagrid/kw_datagrid.module:375
 msgid "Display related blocks"
 msgstr "Afficher les blocs dépendants"
 
-#: kw_datagrid/kw_datagrid.module:334
+#: kw_datagrid/kw_datagrid.module:391
 msgid "(ascending)"
 msgstr "(croissant)"
 
-#: kw_datagrid/kw_datagrid.module:335
+#: kw_datagrid/kw_datagrid.module:392
 msgid "(descending)"
 msgstr "(décroissant)"
 
-#: kw_datagrid/kw_datagrid.module:339
+#: kw_datagrid/kw_datagrid.module:396
 msgid "Sort by"
 msgstr "Trier par"
 
-#: kw_datagrid/kw_datagrid.module:356
+#: kw_datagrid/kw_datagrid.module:413
 msgid "Display all results in a page"
 msgstr "Afficher tous les résultats sur une page"
 
-#: kw_datagrid/kw_datagrid.module:359
+#: kw_datagrid/kw_datagrid.module:416
 msgid "Display !results results per page"
 msgstr "Afficher !results résultats par page"
 
-#: kw_datagrid/kw_datagrid.module:364
+#: kw_datagrid/kw_datagrid.module:421
 msgid "Number of results"
 msgstr "Nombre de résultats"
 
-#: kw_datagrid/kw_datagrid.module:371
+#: kw_datagrid/kw_datagrid.module:428
 msgid "Apply changes and regenerate results list"
 msgstr ""
 "Appliquer les changements et générer à nouveau la liste des "
 "résultats"
 
-#: kw_datagrid/kw_datagrid.module:378
+#: kw_datagrid/kw_datagrid.module:435
 msgid "Default values"
 msgstr "Valeurs par défaut"
 
-#: kw_datagrid/kw_datagrid.module:398
+#: kw_datagrid/kw_datagrid.module:457
 msgid "Only numbers are allowed in %field."
 msgstr "Seuls les nombres sont autorisés dans %field."
 
-#: kw_datagrid/kw_datagrid.module:495
+#: kw_datagrid/kw_datagrid.module:580
 msgid "Select yes or no"
 msgstr "Choisir oui ou non"
 
-#: kw_datagrid/kw_datagrid.module:496
+#: kw_datagrid/kw_datagrid.module:581
 msgid "No"
 msgstr "Non"
 
-#: kw_datagrid/kw_datagrid.module:497
+#: kw_datagrid/kw_datagrid.module:582
 msgid "Yes"
 msgstr "Oui"
 
-#: kw_datagrid/kw_datagrid.module:508
+#: kw_datagrid/kw_datagrid.module:594
 msgid "strictly greater than"
 msgstr "strictement supérieur à"
 
-#: kw_datagrid/kw_datagrid.module:509
+#: kw_datagrid/kw_datagrid.module:595
 msgid "greater than"
 msgstr "supérieur ou égal à"
 
-#: kw_datagrid/kw_datagrid.module:510
+#: kw_datagrid/kw_datagrid.module:596
 msgid "strictly lesser than"
 msgstr "strictement inférieur à"
 
-#: kw_datagrid/kw_datagrid.module:511
+#: kw_datagrid/kw_datagrid.module:597
 msgid "lesser than"
 msgstr "inférieur ou égal à"
 
-#: kw_datagrid/kw_datagrid.module:512
+#: kw_datagrid/kw_datagrid.module:598
 msgid "equals"
 msgstr "égal à"
 
-#: kw_datagrid/kw_datagrid.module:513
+#: kw_datagrid/kw_datagrid.module:599
 msgid "not equals"
 msgstr "différent de"
 
-#: kw_datagrid/kw_datagrid.module:517
+#: kw_datagrid/kw_datagrid.module:603
 msgid "is in"
 msgstr "fait partie de"
 
-#: kw_datagrid/kw_datagrid.module:518
+#: kw_datagrid/kw_datagrid.module:604
 msgid "is not in"
 msgstr "ne fait pas partie de"
 
-#: kw_datagrid/kw_datagrid.module:522
+#: kw_datagrid/kw_datagrid.module:609;621
 msgid "exact expression"
 msgstr "égal à l'expression"
 
-#: kw_datagrid/kw_datagrid.module:523
+#: kw_datagrid/kw_datagrid.module:610;622
 msgid "containing expression"
 msgstr "contenant l'expression"
 
-#: kw_datagrid/kw_datagrid.module:524
+#: kw_datagrid/kw_datagrid.module:611;623
 msgid "beginning by this expression"
 msgstr "commençant par l'expression"
 
-#: kw_datagrid/kw_datagrid.module:525
+#: kw_datagrid/kw_datagrid.module:612;624
 msgid "ending by this expression"
 msgstr "terminant par l'expression"
 
-#: kw_datagrid/kw_datagrid.module:526
-msgid "containing at least one word"
-msgstr "contenant au moins un des termes"
-
-#: kw_datagrid/kw_datagrid.module:527
-msgid "containing all words"
-msgstr "contenant tous les termes"
-
-#: kw_datagrid/kw_datagrid.module:528
+#: kw_datagrid/kw_datagrid.module:613;627
 msgid "different from"
 msgstr "différent de"
 
-#: kw_datagrid/kw_datagrid.module:529
+#: kw_datagrid/kw_datagrid.module:614;628
 msgid "not containing this expression"
 msgstr "ne contenant pas l'expression"
 
-#: kw_datagrid/kw_datagrid.module:530
+#: kw_datagrid/kw_datagrid.module:615;629
 msgid "not beginning by this expression"
 msgstr "ne commençant pas par l'expression"
 
-#: kw_datagrid/kw_datagrid.module:531
+#: kw_datagrid/kw_datagrid.module:616;630
 msgid "not ending by this expression"
 msgstr "ne terminant pas par l'expression"
 
-#: kw_datagrid/kw_datagrid.module:532
+#: kw_datagrid/kw_datagrid.module:625
+msgid "containing at least one word"
+msgstr "contenant au moins un des termes"
+
+#: kw_datagrid/kw_datagrid.module:626
+msgid "containing all words"
+msgstr "contenant tous les termes"
+
+#: kw_datagrid/kw_datagrid.module:631
 msgid "not containing one of these words"
 msgstr "ne contenant pas un de ces termes"
 
-#: kw_datagrid/kw_datagrid.module:533
+#: kw_datagrid/kw_datagrid.module:632
 msgid "not containing all of these words"
 msgstr "ne contenant pas tous ces termes"
 
-#: kw_datagrid/kw_datagrid.module:551
+#: kw_datagrid/kw_datagrid.module:651
 msgid "!column data mass edition"
 msgstr "Edition en masse des données de la colonne !column"
 
-#: kw_datagrid/kw_datagrid.module:666
+#: kw_datagrid/kw_datagrid.module:766
 msgid "@type %title has been updated."
 msgstr "Le contenu '%title', de type '@type', a été mis à jour."
+
+#: kw_datagrid/kw_datagrid.module:774
+msgid "%total_results results found, order by !order."
+msgstr "%total_results résultats trouvés, triés par !order."
+
+#: kw_datagrid/kw_datagrid.module:775
+msgid "Only 1 result found (out of %unfiltered_total)."
+msgstr "Seul 1 résultat correspondant aux critères a été trouvé (sur un total de %unfiltered_total)."
+
+#: kw_datagrid/kw_datagrid.module:776
+msgid "%total_results results found (out of %unfiltered_total), order by !order."
+msgstr "%total_results correspondant aux critères ont été trouvés (sur un total de %unfiltered_total), triés par !order."
+
+#: kw_datagrid/kw_datagrid.module:777
+msgid "Displaying results %start to %end."
+msgstr "Les résultats %start à %end sont affichés."
+
+#: kw_datagrid/kw_datagrid.module:778
+msgid "1 filter active : !filters."
+msgstr "1 filtre actif : !filters."
+
+#: kw_datagrid/kw_datagrid.module:779
+msgid "%nb_filters filters active : !filters."
+msgstr "%nb_filters filtres actifs : !filters."
+
+#: kw_datagrid/kw_datagrid.install:50
+msgid "Creation of table kw_datagrid"
+msgstr "Création de la table kw_datagrid"
+
+#: kw_datagrid/kw_datagrid.install:61
+msgid "New field required_file added in table kw_datagrid"
+msgstr "Nouveau champ requis ajouté dans la table kw_datagrid"
 
 #: kw_datagrid/kw_datagrid.info:0
 msgid "KDatagrid"
@@ -555,6 +643,10 @@ msgid "A custom datagrid system to display data in tables"
 msgstr ""
 "Propose une façon personnalisée d'afficher les données de manière "
 "tabulaire."
+
+#: kw_datagrid/kw_datagrid.js:0
+msgid "Refreshing..."
+msgstr "Mise à jour en cours..."
 
 #: kw_tags/kw_tags.module:21
 msgid "Active tags"
