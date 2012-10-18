@@ -16,7 +16,24 @@ function kw_tools_menu() {
     'access arguments' => array('access administration pages'),
     'type' => MENU_CALLBACK
   );
+  $items["kw/popup/%ctools_js/%"] = array(
+    'title' => 'View node content in modal window',
+    'page callback' => 'kw_tools_open_node_in_popup',
+    'page arguments' => array(2, 3),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
   return $items;
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function kw_tools_entity_info_alter(&$entity_info) {
+  $entity_info['node']['view modes']['modal'] = array(
+      'label' => t('Modal'),
+      'custom settings' => FALSE,
+  );
 }
 
 /**
@@ -106,6 +123,47 @@ function kw_tools_date_formats() {
 // -------------------------------------------------
 // ---------------- SPECIFIC FUNCTIONS -------------
 // -------------------------------------------------
+
+function kw_tools_add_modal_settings() {
+  ctools_include('ajax');
+  ctools_include('modal');
+  ctools_modal_add_js();
+  $sample_style = array(
+      'kweb-modal' => array(
+          'modalOptions' => array(
+              'opacity' => .5,
+              'background-color' => '#000',
+          ),
+          'closeImage' => ''
+      ),
+  );
+  drupal_add_js($sample_style, 'setting');
+}
+
+/**
+ * Ouvre des contenus dans une fenêtre modale
+ */
+function kw_tools_open_node_in_popup($js, $nid) {
+  $node = node_load($nid);
+  if (!$node) {
+    drupal_not_found();
+    return;
+  }
+  if (!node_access('view', $node)) {
+    drupal_access_denied();
+    return;
+  }
+  if ($js && module_exists('ctools')) {
+    $type = node_type_load($node->type);
+    $title = $type->name;
+    $content = node_view($node, 'modal');
+    ctools_include('modal');
+    ctools_modal_render($title, $content);
+  }
+  else {
+    drupal_goto('node/' . $nid);
+  }
+}
 
 /**
  * Ajoute des données sur un champ de formulaire afin de le coordonner avec un widget jquery

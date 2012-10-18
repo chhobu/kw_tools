@@ -466,6 +466,7 @@ class KwDatagrid {
     $field = NULL;
     $weight = count($this->columns);
     $sort_expression = NULL;
+    $header = NULL;
     if (is_array($options)) {
       if (isset($options['field'])) {
         if (substr_count($options['field'], '.') > 0) {
@@ -519,6 +520,9 @@ class KwDatagrid {
         $weight = $options["weight"];
         $op['reorder_columns'] = TRUE;
       }
+      if (isset($options['header'])) {
+        $header = $options['header'];
+      }
     }
     if ($main) {
       $uncacheable = TRUE;
@@ -526,6 +530,7 @@ class KwDatagrid {
     }
     $this->columns[$alias] = array(
       'label' => $label,
+      'header' => $header,
       'is_db_field' => !is_null($table) && !is_null($field) ? TRUE : FALSE,
       'is_expression' => !is_null($expression) ? TRUE : FALSE,
       'output' => $output,
@@ -920,7 +925,7 @@ class KwDatagrid {
             continue;
           }
           if (!$column['hidden']) {
-            $this->headers[$alias]["data"] = $column["label"];
+            $this->headers[$alias]["data"] = !empty($column['header']) ? $column['header'] : $column["label"];
             if (isset($this->fields[$alias]) && $this->fields[$alias]["sortable"]) {
               if (!empty( $this->fields[$alias]["table_field"])) {
                 $this->headers[$alias]["field"] = $this->fields[$alias]["table_field"];
@@ -1170,6 +1175,7 @@ class KwDatagrid {
   }
 
   private function buildModeItem($rows, $orig_rows) {
+    $this->auto_refresh = 0;
     if (!isset($this->mode_context["entity_type"])) {
       $this->mode_context["entity_type"] = "node";
     }

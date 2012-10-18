@@ -97,7 +97,12 @@ function theme_datagrid($variables) {
       if (isset($columns[$column_key]["modifiable"]) && $columns[$column_key]["modifiable"]) {
         $title = strip_tags(t("Mass modification of !item data", array("!item" => strip_tags($cell["data"]))));
         $cell["data"] .= l("<img src='/misc/configure.png' alt=\"" . $title . "\" title=\"" . $title . "\" />",
-          $datagrid->getConstructor('page'), array("html" => TRUE, "query" => array("_id" => $datagrid->getId(), "mass_edit" => $column_key), "fragment" => $datagrid->getId()));
+          $datagrid->getConstructor('page'), array(
+              "html" => TRUE,
+              "query" => array("_id" => $datagrid->getId(), "mass_edit" => $column_key),
+              "fragment" => $datagrid->getId(),
+              "attributes" => array('rel' => 'nofollow')
+          ));
       }
       $head_output .= _theme_table_cell($cell, TRUE);
     }
@@ -233,6 +238,7 @@ function theme_datagrid($variables) {
     drupal_add_js(drupal_get_path('module', 'kw_datagrid') . '/kw_datagrid.js');
     $footer_output_part_one .= '<div class="datagrid-bottom-links links">';
     $attributes['class'][] = 'refresh-link';
+    $attributes['rel'] = 'nofollow';
     $attributes['data-refresh'] = $datagrid->getAutoRefresh() * 1000;
     if ($datagrid->isUsingAjax()) {
       $attributes["class"][] = "use-ajax";
@@ -277,6 +283,7 @@ function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header
     $cell['data'] = l($cell['data'] . $image, $datagrid->getPath(),
       array(
         'attributes' => array(
+          'rel' => 'nofollow',
           'title' => $title,
           'class' => array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'sortable')
         ),
@@ -664,7 +671,10 @@ function theme_datagrid_block($variables) {
     $output .= l('<img src="/' . drupal_get_path('module', 'kw_datagrid')
       . '/img/close-icon3.png" alt="' . $block['close_label'] . '" title="' . $block['close_label'] . '" />',
       $datagrid->getPath(), array(
-        'attributes' => array('class' => array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'close-button')),
+        'attributes' => array(
+            'class' => array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'close-button'),
+            'rel' => 'nofollow'
+        ),
         'query' => $parameters,
         'fragment' => $datagrid->getId(),
         'html' => TRUE
@@ -704,7 +714,7 @@ function theme_datagrid_advanced_controls($variables) {
         $classes[] = 'activated';
         $output .= l(t('Hide filter panel'), $datagrid->getPath(), array(
             'query' => $filters_toogle_parameters,
-            'attributes' => array('class' => $classes)
+            'attributes' => array('class' => $classes, 'rel' => 'nofollow')
         ));
         $panel = drupal_render($datagrid->buildFilterForm());
       }
@@ -712,7 +722,7 @@ function theme_datagrid_advanced_controls($variables) {
         $filters_toogle_parameters['_o'] = 'f';
         $output .= l(t('Show filter panel'), $datagrid->getPath(), array(
             'query' => $filters_toogle_parameters,
-            'attributes' => array('class' => $classes)
+            'attributes' => array('class' => $classes, 'rel' => 'nofollow')
         ));
       }
       $output .= "</div>";
@@ -734,7 +744,7 @@ function theme_datagrid_advanced_controls($variables) {
         $classes[] = 'activated';
         $output .= l(t('Hide sort panel'), $datagrid->getPath(), array(
             'query' => $sort_toogle_parameters,
-            'attributes' => array('class' => $classes),
+            'attributes' => array('class' => $classes, 'rel' => 'nofollow'),
         ));
         $sortables = $datagrid->getSortables();
         $rows = array();
@@ -759,14 +769,22 @@ function theme_datagrid_advanced_controls($variables) {
           $asc_parameters['_p'] = 0;
           $asc_link = l(t('Ascending'), $datagrid->getPath(), array(
               'query' => $asc_parameters,
-              'attributes' => array('class' => $asc_classes, 'title' => t('Sort by !name ascending', array('!name' => $label))),
+              'attributes' => array(
+                  'class' => $asc_classes,
+                  'title' => t('Sort by !name ascending', array('!name' => $label)),
+                  'rel' => 'nofollow'
+              ),
               'fragment' => $datagrid->getId()
           ));
           $desc_parameters['_s'] = -$value;
           $desc_parameters['_p'] = 0;
           $desc_link = l(t('Descending'), $datagrid->getPath(), array(
               'query' => $desc_parameters,
-              'attributes' => array('class' => $desc_classes, 'title' => t('Sort by !name descending', array('!name' => $label))),
+              'attributes' => array(
+                  'class' => $desc_classes,
+                  'title' => t('Sort by !name descending', array('!name' => $label)),
+                  'rel' => 'nofollow'
+              ),
               'fragment' => $datagrid->getId()
           ));
           $row[] = array('data' => $asc_link . ' | '. $desc_link);
@@ -779,7 +797,7 @@ function theme_datagrid_advanced_controls($variables) {
         $sort_toogle_parameters['_o'] = 's';
         $output .= l(t('Show sort panel'), $datagrid->getPath(), array(
             'query' => $sort_toogle_parameters,
-            'attributes' => array('class' => $classes)
+            'attributes' => array('class' => $classes, 'rel' => 'nofollow')
         ));
       }
       $output .= "</div>";
@@ -802,7 +820,7 @@ function theme_datagrid_advanced_controls($variables) {
       $classes[] = 'activated';
       $output .= l(t('Hide columns panel'), $datagrid->getPath(), array(
           'query' => $columns_toogle_parameters,
-          'attributes' => array('class' => $classes)
+          'attributes' => array('class' => $classes, 'rel' => 'nofollow')
       ));
       $columns = $datagrid->listSelectableColumns();
       $header = array(
@@ -835,7 +853,7 @@ function theme_datagrid_advanced_controls($variables) {
         }
         $action = l($label, $datagrid->getPath(), array(
             'query' => $columns_parameters,
-            'attributes' => array('class' => $classes)
+            'attributes' => array('class' => $classes, 'rel' => 'nofollow')
         ));
         $row[] = $action;
         $rows[] = implode(' : ', $row);
@@ -849,7 +867,7 @@ function theme_datagrid_advanced_controls($variables) {
       $columns_toogle_parameters['_o'] = 'c';
       $output .= l(t('Show columns panel'), $datagrid->getPath(), array(
           'query' => $columns_toogle_parameters,
-          'attributes' => array('class' => $classes)
+          'attributes' => array('class' => $classes, 'rel' => 'nofollow')
       ));
     }
     $output .= "</div>";
@@ -872,7 +890,7 @@ function theme_datagrid_advanced_controls($variables) {
         $output .= l($block['open_label'], $datagrid->getPath(), array(
             'query' => $block_parameters,
             'fragment' => $block['html_id'],
-            'attributes' => array('class' => array('datagrid-button'))
+            'attributes' => array('class' => array('datagrid-button'), 'rel' => 'nofollow')
         ));
       }
       else if ($block['hideable']) {
@@ -886,7 +904,10 @@ function theme_datagrid_advanced_controls($variables) {
         $output .= l($block['close_label'], $datagrid->getPath(), array(
             'query' => $block_parameters,
             'fragment' => $datagrid->getId(),
-            'attributes' => array('class' => array('datagrid-button', 'activated', $datagrid->isUsingAjax() ? 'use-ajax' : NULL))
+            'attributes' => array(
+                'rel' => 'nofollow',
+                'class' => array('datagrid-button', 'activated', $datagrid->isUsingAjax() ? 'use-ajax' : NULL)
+            )
         ));
       }
     }
@@ -900,7 +921,10 @@ function theme_datagrid_advanced_controls($variables) {
       . l(t('Reset'), $datagrid->getPath(), array(
           'query' => array('_id' => $datagrid->getId(), '_r' => 2),
           'fragment' => $datagrid->getId(),
-          'attributes' => array('class' => array('datagrid-button', $datagrid->isUsingAjax() && count($datagrid->getConfigurableBlocks()) == 0 ? 'use-ajax' : NULL))
+          'attributes' => array(
+              'rel' => 'nofollow',
+              'class' => array('datagrid-button', $datagrid->isUsingAjax() && count($datagrid->getConfigurableBlocks()) == 0 ? 'use-ajax' : NULL)
+          )
       ))
       . "</div>";
   }
