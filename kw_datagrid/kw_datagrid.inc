@@ -84,6 +84,16 @@ class KwDatagrid {
     }
     if (isset($options["node"])) {
       $this->linked_node = $options["node"];
+      $home = 'node/' . $this->linked_node->nid;
+      $update_constructor = TRUE;
+    }
+    elseif (isset($options["home"])) {
+      $home = $options["home"];
+      $update_constructor = TRUE;
+    }
+    else {
+      $home = $_GET['q'];
+      $update_constructor = FALSE;
     }
     if (isset($options["pool"])) {
       $this->pool = $options["pool"];
@@ -129,7 +139,26 @@ class KwDatagrid {
       $this->reset($_GET['_r'] > 1 ? 'all' : 'filters');
     }
     $this->constructor = self::retrieveConstructor($this->id);
-    if($this->mode != "item" && is_null($this->constructor)) {
+    if (is_null($this->constructor)) {
+      $update_constructor = TRUE;
+    }
+    elseif (isset($options['file']) && $this->constructor['required_file'] != $options['file']) {
+      $update_constructor = TRUE;
+    }
+    elseif ($update_constructor && $this->constructor['page'] == $home) {
+      $update_constructor = FALSE;
+    }
+    if($this->mode != "item" && $update_constructor) {
+      if (!is_null($this->constructor) && $constructor_storage == 'db') {
+        $query = db_delete('kw_datagrid')
+          ->condition('name', $this->id)
+          ->condition('page', $this->constructor['page'])
+          ->execute();
+        watchdog('debug', "Datagrid !name in page !page updated", array(
+            '!name' => $this->id,
+            '!page' => $this->constructor['page']
+        ));
+      }
       if (!empty($allowable_parameters)) {
         $parameters = drupal_get_query_parameters();
         foreach ($parameters as $key => $value) {
@@ -142,7 +171,7 @@ class KwDatagrid {
         'name' => $this->id,
         'function' => $function,
         'args' => !empty($args) ? serialize($args) : NULL,
-        'page' => $_GET['q'],
+        'page' => $home,
         'parameters' => !empty($parameters) ? serialize($parameters) : NULL,
         'required_file' => !empty($options['file']) ? $options['file'] : NULL
       );
