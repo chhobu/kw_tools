@@ -31,7 +31,7 @@ Drupal.behaviors.kBlock = {attach: function(context, settings) {(function ($) {
       $(this).find('.content').hide();
     }
   });
-  $('.block.collapsible .collapse-link').click(function() {
+  $('.block.collapsible .collapse-link').not('.collapsible-processed').addClass('collapsible-processed').click(function() {
     $block = $(this).parents('.block');
     $content = $block.find('.content').removeClass('animated').stop();
     if ($block.hasClass('expanded')) {
