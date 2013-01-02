@@ -1,0 +1,4 @@
+<?php
+function kw_tools_uninstall() {
+  variable_del('kw_blocks_settings');
+}

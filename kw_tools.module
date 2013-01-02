@@ -4,6 +4,16 @@
 // -------------------------------------------------
 // ---------------- HOOKS --------------------------
 // -------------------------------------------------
+/**
+ * Implements hook_init().
+ */
+function kw_tools_init() {
+  $settings = variable_get('kw_blocks_settings', array());
+  if (!empty($settings['collapse'])) {
+    drupal_add_library('system', 'jquery.cookie');
+  }
+}
+
 
 /**
  * Inmplements hook_menu().
@@ -120,9 +130,91 @@ function kw_tools_date_formats() {
   );
 }
 
+/**
+ * Implements hook_form_alter().
+ */
+function kw_tools_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == 'block_admin_configure') {
+    $settings = variable_get('kw_blocks_settings', array());
+    $form['#submit'][] = 'kw_tools_form_block_submit';
+    $form['kw_blocks'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Appearance and behaviors'),
+      '#collapsible' => TRUE,
+    );
+    $options = array(
+          0 => t('None.'),
+          1 => t('Collapsible, expanded by default.'),
+          2 => t('Collapsible, collapsed by default.')
+    );
+    $current_block_id = str_replace('_', '-', $form['module']['#value']) . '-' . str_replace('_', '-', $form['delta']['#value']);
+    if (isset($settings['collapse'][$current_block_id]) && in_array($settings['collapse'][$current_block_id], array_keys($options))) {
+      $default_value = $settings['collapse'][$current_block_id];
+    }
+    else {
+      $default_value = 0;
+    }
+    $form['kw_blocks']['collapse_type'] = array(
+      '#type' => 'radios',
+      '#title' => t('Block collapse behavior'),
+      '#options' => $options,
+      '#default_value' => $default_value,
+    );
+    $form['kw_blocks']['additional_css_classes'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Additional CSS classes'),
+      '#default_value' => isset($settings['css'][$current_block_id]) ?
+        implode(' ', $settings['css'][$current_block_id]) : '',
+    );
+  }
+}
+
+/**
+ * Implements hook_preprocess_block().
+ */
+function kw_tools_preprocess_block(&$vars) {
+  $block = $vars['block'];
+  $block_id = str_replace('_', '-', $block->module) . '-' . str_replace('_', '-', $block->delta);
+  $settings = variable_get('kw_blocks_settings', array());
+  if (isset($settings['collapse'][$block_id])) {
+    drupal_add_js(drupal_get_path('module', 'kw_tools') . '/js/kw_block.js', array(
+      'every_page' => TRUE
+    ));
+    $vars['classes_array'][] = 'collapsible';
+    if ($settings['collapse'][$block_id] == 2) {
+      $vars['classes_array'][] = 'collapsed';
+    }
+    else {
+      $vars['classes_array'][] = 'expanded';
+    }
+  }
+  if (isset($settings['css'][$block_id])) {
+    $vars['classes_array'] = array_merge($vars['classes_array'], $settings['css'][$block_id]);
+  }
+}
+
 // -------------------------------------------------
 // ---------------- SPECIFIC FUNCTIONS -------------
 // -------------------------------------------------
+
+function kw_tools_form_block_submit($form, $form_state) {
+  $current_block_id = str_replace('_', '-', $form['module']['#value']) . '-' . str_replace('_', '-', $form['delta']['#value']);
+  $settings = variable_get('kw_blocks_settings', array());
+  if ($form_state['values']['collapse_type'] > 0) {
+    $settings['collapse'][$current_block_id] = $form_state['values']['collapse_type'];
+  }
+  elseif (isset($settings['collapse'][$current_block_id])) {
+    unset($settings['collapse'][$current_block_id]);
+  }
+  if (!empty($form_state['values']['additional_css_classes'])) {
+    $settings['css'][$current_block_id] = explode(' ', trim(
+      str_replace(array(',', ';'), ' ', $form_state['values']['additional_css_classes'])));
+  }
+  elseif (isset($settings['css'][$current_block_id])) {
+    unset($settings['css'][$current_block_id]);
+  }
+  variable_set('kw_blocks_settings', $settings);
+}
 
 function kw_tools_add_modal_settings() {
   ctools_include('ajax');
