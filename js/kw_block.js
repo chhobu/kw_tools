@@ -12,7 +12,7 @@ Drupal.behaviors.kBlock = {attach: function(context, settings) {(function ($) {
     $title = $(this).find('h2');
     blockId = $(this).attr('id');
     if ($title) {
-      $title.wrapInner('<a href="#" class="collapse-link">');
+      $title.wrapInner('<a href="#" class="collapse-link icon">');
     }
     $(this).addClass('collapsible-processed');
     items = getCookieData();

@@ -269,23 +269,23 @@ function theme_datagrid($variables) {
 function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header, $ts) {
   // Special formatting for the currently sorted column header.
   if (is_array($cell) && isset($cell['field'])) {
-    $title = t('sort by @s', array('@s' => $cell['data']));
+    $title = t('sort by @s ascending', array('@s' => $cell['data']));
     $currentSort = $datagrid->getCurrentSort();
     $sortKey = $datagrid->findSortable($key);
+    $link_classes = array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'sortable', 'icon');
     if (abs($currentSort) == $sortKey) {
       $cell['class'][] = 'active';
-      $image = theme('tablesort_indicator', array('style' => $currentSort > 0 ? "asc" : "desc"));
+      $link_classes[] = $currentSort > 0 ? "ascending" : "descending";
+      if ($currentSort > 0) {
+        $title = t('sort by @s descending', array('@s' => $cell['data']));
+      }
     }
-    else {
-      // If the user clicks a different header, we want to sort ascending initially.
-      $image = '';
-    }
-    $cell['data'] = l($cell['data'] . $image, $datagrid->getPath(),
+    $cell['data'] = l($cell['data'], $datagrid->getPath(),
       array(
         'attributes' => array(
           'rel' => 'nofollow',
           'title' => $title,
-          'class' => array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'sortable')
+          'class' => $link_classes
         ),
         'query' => array_merge($ts['query'], array(
           '_s' => $sortKey == $currentSort ? -$sortKey : $sortKey,
@@ -583,7 +583,7 @@ function theme_datagrid_item_navigation($variables) {
     $title_content .= (!is_null($variables["title"]["custom"]) ? $variables["title"]["custom"] . " " : "");
     $title_content .= (!is_null($variables["title"]["node"]) ? $variables["title"]["node"] : "");
     $title_content .= ($title_content == "" ? "" : " - ") . $variables["title"]["datagrid"];
-    $output .= "<div class='nav-title'>". $title_content . "</div>";
+    $output .= "<div class='nav-title icon radio-checked'>". $title_content . "</div>";
   }
   $output .= "<div class='nav-content'>";
   if (!is_null($variables["prev"]) || !is_null($variables["next"])) {
@@ -593,7 +593,10 @@ function theme_datagrid_item_navigation($variables) {
       foreach ($prev["rows"] as $row) {
         $content[] = $row["data"];
       }
-      $output .= "<div class='nav-prev'>" . l($prev["label"], $prev["link"], array("attributes" => array("class" => array("prev"), "title" => strip_tags(implode(" | ", $content))))) . (count($prev["rows"]) == 0 ?
+      $output .= "<div class='nav-prev'>" . l($prev["label"], $prev["link"], array("attributes" => array(
+          "class" => array("prev", "icon"),
+          "title" => strip_tags(implode(" | ", $content)))
+        )) . (count($prev["rows"]) == 0 ?
         "" : " : ". implode(" | ", $content)) . "</div>";
     }
     if (!is_null($variables["next"])) {
@@ -602,7 +605,10 @@ function theme_datagrid_item_navigation($variables) {
       foreach ($next["rows"] as $row) {
         $content[] = $row["data"];
       }
-      $output .= "<div class='nav-next'>" . l($next["label"], $next["link"], array("attributes" => array("class" => array("next"), "title" => strip_tags(implode(" | ", $content))))). (count($next["rows"]) == 0 ?
+      $output .= "<div class='nav-next'>" . l($next["label"], $next["link"], array("attributes" => array(
+          "class" => array("next", 'icon'),
+          "title" => strip_tags(implode(" | ", $content)))
+        )). (count($next["rows"]) == 0 ?
         "" : " : ". implode(" | ", $content)) . "</div>";
     }
   }
@@ -700,7 +706,7 @@ function theme_datagrid_advanced_controls($variables) {
   if ($datagrid->getUnfilteredTotalResults() > 1) {
     // Filtres
     $test = $datagrid->getFilters("aliases");
-    $classes = array('datagrid-button');
+    $classes = array('datagrid-button', 'icon', 'filter');
     if ($datagrid->isUsingAjax()) {
       $classes[] = 'use-ajax';
     }
@@ -807,7 +813,7 @@ function theme_datagrid_advanced_controls($variables) {
   if ($datagrid->hasSelectablesColumns() && $datagrid->getUnfilteredTotalResults() > 0) {
     $output .= "<div class='datagrid-advanced-control datagrid-columns'>";
     $columns_toogle_parameters = $parameters;
-    $classes = array('datagrid-button');
+    $classes = array('datagrid-button', 'icon', 'equalizer');
     if ($datagrid->isUsingAjax()) {
       $classes[] = 'use-ajax';
     }
@@ -833,19 +839,20 @@ function theme_datagrid_advanced_controls($variables) {
         //$row[] = array('data' => $column);
         $row[] = $column;
         $columns_parameters = $parameters;
-        $classes = array();
-        $classes[] = 'datagrid-button';
+        $classes = array('datagrid-button', 'icon');
         if ($datagrid->isUsingAjax()) {
           $classes[] = 'use-ajax';
         }
         if (isset($selected[$key])) {
           $classes[] = 'activated';
+          $classes[] = 'eye-close';
           $columns_link = $selected;
           unset($columns_link[$key]);
           $columns_parameters['_c'] = $datagrid->retrieveSelectedColumns(array_keys($columns_link), TRUE);
           $label = t('Hide');
         }
         else {
+          $classes[] = 'eye-open';
           $columns_link = array_keys($selected);
           $columns_link[] = $key;
           $columns_parameters['_c'] = $datagrid->retrieveSelectedColumns($columns_link, TRUE);

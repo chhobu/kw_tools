@@ -1261,11 +1261,11 @@ class KwDatagrid {
         "custom" => isset($this->mode_context["title"]) ? $this->mode_context["title"] : NULL,
         "list" => count($this->active_filters) == 0 ?
           l($this->extra_caption["backlink"], $path,
-            array("fragment" => $this->id, "query" => array("_p" => isset($new_page) ? $new_page : 0), "attributes" => array("class" => "back")))
+            array("fragment" => $this->id, "query" => array("_p" => isset($new_page) ? $new_page : 0), "attributes" => array("class" => array("back", "icon"))))
           : l($this->extra_caption["filtered_backlink"], "node/" .$path,
-            array("fragment" => $this->id, "query" => array("_p" => isset($new_page) ? $new_page : 0), "attributes" => array("class" => "back"))) . " | ".
+            array("fragment" => $this->id, "query" => array("_p" => isset($new_page) ? $new_page : 0), "attributes" => array("class" => array("back", "icon")))) . " | ".
             l($this->extra_caption["unfiltered_backlink"], "node/" . $path,
-            array("fragment" => $this->id, "query" => array("_r" => 1), "attributes" => array("class" => "back"))),
+            array("fragment" => $this->id, "query" => array("_r" => 1), "attributes" => array("class" => "back", "icon"))),
         ),
       "#next" => $next,
       "#prev" => $prev
