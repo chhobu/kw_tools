@@ -722,7 +722,8 @@ function theme_datagrid_advanced_controls($variables) {
             'query' => $filters_toogle_parameters,
             'attributes' => array('class' => $classes, 'rel' => 'nofollow')
         ));
-        $panel = drupal_render($datagrid->buildFilterForm());
+        $result = $datagrid->buildFilterForm();
+        $panel = drupal_render($result);
       }
       else {
         $filters_toogle_parameters['_o'] = 'f';
