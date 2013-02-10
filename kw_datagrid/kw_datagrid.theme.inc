@@ -269,16 +269,19 @@ function theme_datagrid($variables) {
 function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header, $ts) {
   // Special formatting for the currently sorted column header.
   if (is_array($cell) && isset($cell['field'])) {
-    $title = t('sort by @s ascending', array('@s' => $cell['data']));
     $currentSort = $datagrid->getCurrentSort();
     $sortKey = $datagrid->findSortable($key);
+    $columns = $datagrid->getColumns();
     $link_classes = array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'sortable', 'icon');
     if (abs($currentSort) == $sortKey) {
       $cell['class'][] = 'active';
       $link_classes[] = $currentSort > 0 ? "ascending" : "descending";
       if ($currentSort > 0) {
-        $title = t('sort by @s descending', array('@s' => $cell['data']));
+        $title = t('sort by @s descending', array('@s' => $columns[$key]['label']));
       }
+    }
+    if (!isset($title)) {
+      $title = t('sort by @s ascending', array('@s' => $columns[$key]['label']));
     }
     $cell['data'] = l($cell['data'], $datagrid->getPath(),
       array(
