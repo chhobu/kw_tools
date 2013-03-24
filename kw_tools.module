@@ -553,7 +553,7 @@ function array_diff_assoc_recursive($array1, $array2) {
       $difference[$key] = $value;
     }
   }
-  return !isset($difference) ? 0 : $difference;
+  return !isset($difference) ? array() : $difference;
 }
 
 // -------------------------------------------------
