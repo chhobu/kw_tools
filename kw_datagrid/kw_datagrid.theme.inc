@@ -174,13 +174,18 @@ function theme_datagrid($variables) {
     $pg_parameters = $parameters;
     $items = array();
     $all = FALSE;
+    $show_next = TRUE;
     sort($choices);
+
     foreach ($choices as $choice) {
       if ($choice == 0) {
         $all = TRUE;
         continue;
       }
-      elseif ($choice >= $datagrid->getTotalResults() && $choice != $datagrid->getPager()) {
+      elseif ($show_next && $choice >= $datagrid->getTotalResults()) {
+        $show_next = FALSE;
+      }
+      elseif (!$show_next && $choice >= $datagrid->getTotalResults()) {
         continue;
       }
       if ($choice == $datagrid->getPager()) {

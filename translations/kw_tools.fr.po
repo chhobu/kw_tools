@@ -612,7 +612,7 @@ msgstr "Seul 1 résultat correspondant aux critères a été trouvé (sur un tot
 
 #: kw_datagrid/kw_datagrid.module:776
 msgid "%total_results results found (out of %unfiltered_total), order by !order."
-msgstr "%total_results correspondant aux critères ont été trouvés (sur un total de %unfiltered_total), triés par !order."
+msgstr "%total_results résultats correspondant aux critères ont été trouvés (sur un total de %unfiltered_total), triés par !order."
 
 #: kw_datagrid/kw_datagrid.module:777
 msgid "Displaying results %start to %end."

@@ -566,7 +566,7 @@ function array_diff_assoc_recursive($array1, $array2) {
  * @param boolean $die : si TRUE, le script s'arrête automatiquement
  * @param boolean $alert : si TRUE, le contenu est affiché sous forme d'une alerte javascript
  */
-function __debug($var, $die = TRUE, $alert = FALSE) {
+function __debug($var, $die = FALSE, $alert = FALSE) {
   if ($alert) {
     echo "<script type='text/javascript'>alert(print_r($var, TRUE))</script>";
   }
@@ -574,7 +574,13 @@ function __debug($var, $die = TRUE, $alert = FALSE) {
     if (is_string($var)) {
       $var = htmlentities($var);
     }
-    echo "<pre>" . print_r($var, TRUE) . "</pre>";
+    $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 1);
+    $current_trace = $trace[0];
+    $msg =  "<div class='__debug' style='border: 2px solid #ccc; background-color: #000; padding: 0 1em; color: #fff;'>"
+        . format_date(time(), 'short') . ' - ' . microtime() . ' - '
+        . "<strong>__DEBUG !</strong>"
+        . "<pre>" . print_r($current_trace, TRUE) . "</pre></div>";
+    echo $msg;
   }
   if ($die) {
     die();
