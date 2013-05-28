@@ -556,33 +556,6 @@ function array_diff_assoc_recursive($array1, $array2) {
   return !isset($difference) ? array() : $difference;
 }
 
-// -------------------------------------------------
-// ---------------- DEBUG FUNCTIONS ----------------
-// -------------------------------------------------
-
-/**
- * Affiche de façon élégante la valeur d'une variable
- * @param mixed $var : la variable à analyser
- * @param boolean $die : si TRUE, le script s'arrête automatiquement
- * @param boolean $alert : si TRUE, le contenu est affiché sous forme d'une alerte javascript
- */
-function __debug($var, $die = FALSE, $alert = FALSE) {
-  if ($alert) {
-    echo "<script type='text/javascript'>alert(print_r($var, TRUE))</script>";
-  }
-  else {
-    if (is_string($var)) {
-      $var = htmlentities($var);
-    }
-    $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 1);
-    $current_trace = $trace[0];
-    $msg =  "<div class='__debug' style='border: 2px solid #ccc; background-color: #000; padding: 0 1em; color: #fff;'>"
-        . format_date(time(), 'short') . ' - ' . microtime() . ' - '
-        . "<strong>__DEBUG !</strong>"
-        . "<pre>" . print_r($current_trace, TRUE) . "</pre></div>";
-    echo $msg;
-  }
-  if ($die) {
-    die();
-  }
+function __debug($var) {
+  echo "<pre>" . print_r($var, TRUE) . "</pre>";die();
 }
