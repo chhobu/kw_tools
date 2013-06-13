@@ -35,21 +35,21 @@ Drupal.behaviors.kBlock = {attach: function(context, settings) {(function ($) {
     $block = $(this).parents('.block');
     $content = $block.find('.content').removeClass('animated').stop();
     if ($block.hasClass('expanded')) {
-      status = 0;
+      blockStatus = 0;
       $content.removeAttr('style').addClass('animated').slideUp('fast', function() {
         $(this).removeClass('animated');
         $block.addClass('collapsed').removeClass('expanded');
       });
     }
     else {
-      status = 1;
+    	blockStatus = 1;
       $block.removeClass('collapsed').addClass('expanded');
       $content.addClass('animated').slideDown('fast', function() {
         $(this).removeClass('animated');
       });
     }
     items = getCookieData();
-    items[$block.attr('id')] = status;
+    items[$block.attr('id')] = blockStatus;
     var cookieString = '{ ';
     var cookieParts = [];
     $.each(items, function(id, setting) {
