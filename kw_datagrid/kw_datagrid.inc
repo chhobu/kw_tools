@@ -154,9 +154,9 @@ class KwDatagrid {
           ->condition('name', $this->id)
           ->condition('page', $this->constructor['page'])
           ->execute();
-        watchdog('debug', "Datagrid !name in page !page updated", array(
+        watchdog('kw_datagrid', "Datagrid !name in page %page updated", array(
             '!name' => $this->id,
-            '!page' => $this->constructor['page']
+            '%page' => $this->constructor['page']
         ));
       }
       if (!empty($allowable_parameters)) {

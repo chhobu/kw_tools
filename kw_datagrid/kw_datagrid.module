@@ -120,6 +120,7 @@ function kw_datagrid_response() {
       unset($_SESSION["kw_datagrid"][$_GET["_id"]]);
     }
     drupal_not_found();
+    die();
   }
 }
 
@@ -770,7 +771,7 @@ function kw_datagrid_mass_edit_form_submit($form, &$form_state) {
 }
 
 function kw_datagrid_potx() {
-  $strings =array(
+  $strings = array(
       "many_results" => t("%total_results results found, order by !order."),
       "single_result_filtered" => t("Only 1 result found (out of %unfiltered_total)."),
       "many_results_filtered" => t("%total_results results found (out of %unfiltered_total), order by !order."),
