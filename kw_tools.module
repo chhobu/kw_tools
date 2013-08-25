@@ -197,6 +197,10 @@ function kw_tools_preprocess_block(&$vars) {
 // ---------------- SPECIFIC FUNCTIONS -------------
 // -------------------------------------------------
 
+/**
+ * Modification du formulaire de soumission des blocs
+ * Permet de rajouter des classes et un comportement "collapsible" aux blocs
+ */
 function kw_tools_form_block_submit($form, $form_state) {
   $current_block_id = str_replace('_', '-', $form['module']['#value']) . '-' . str_replace('_', '-', $form['delta']['#value']);
   $settings = variable_get('kw_blocks_settings', array());
