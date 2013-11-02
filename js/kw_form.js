@@ -5,13 +5,13 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
   };
   // Numeric widget functions
   var nmw_change_handler = function($input, modifier) {
-    input_value = $input.val().replace(",", ".");
+    var input_value = $input.val().replace(",", ".");
     if (input_value == "" && modifier == 0) {return;}
     input_value = input_value != parseFloat(input_value) ? 0 : parseFloat(input_value);
-    new_value = input_value + modifier;
-    $container = $input.parents(".numeric-widget-instance");
+    var new_value = input_value + modifier;
+    var $container = $input.parents(".numeric-widget-instance");
     $container.find(".numeric-widget-button").removeClass("disabled");
-    source_limits = $input.data("limits");
+    var source_limits = $input.data("limits");
     if(source_limits["max"] != null && new_value >= source_limits["max"]) {
       new_value = source_limits["max"];
       $container.find(".nmw-plus").addClass("disabled");
@@ -22,14 +22,14 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
     }
     $input.val(parseFloat(custom_to_fixed(new_value,10)));
   };
-  //Numeric widget init
+  // Numeric widget init
   $("div.field-widget-number.numeric-widget").find("input.form-text").addClass("numeric-widget").addClass("container-info");
   $("input.numeric-widget").not(".nmw-processed").addClass("nmw-processed").each(function() {
-    steps = new Array;
-    min = null;
-    max = null;
-    params = null;
-    classes = $(this).filter(".container-info").length > 0 ? $(this).parents("div.numeric-widget").attr("class").split(" ") : $(this).attr("class").split(" ");
+    var steps = [];
+    var min = null;
+    var max = null;
+    var params = null;
+    var classes = $(this).filter(".container-info").length > 0 ? $(this).parents("div.numeric-widget").attr("class").split(" ") : $(this).attr("class").split(" ");
     for(j=0; j < classes.length; j++) {
       if(classes[j].substr(0,5) == "step-") {
         steps[steps.length] = parseFloat(classes[j].substr(5));}
@@ -43,10 +43,11 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
     if(steps.length == 0) {
       steps[0] = 1;
     }
-    hBefore = "<td><table class='numeric-widget-left-controls'>";
-    hAfter = "<td><table class='numeric-widget-right-controls'>";
+    var hBefore = "<td><table class='numeric-widget-left-controls'>";
+    var hAfter = "<td><table class='numeric-widget-right-controls'>";
+    var label;
     $(this).data("limits", {min: min, max: max});
-    for(i = 0; i < steps.length; i++) {
+    for(var i = 0; i < steps.length; i++) {
       if(params != null && params.labels && params.labels[steps[i]]) {
         label = params.labels[steps[i]];}
       else {
@@ -66,11 +67,11 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
   });
   // Multi-select widget functions
   var msw_build_items_object = function($area, type) {
-    var items = new Array();
+    var items = [];
     $area.find(type).each(function(i) {
       items[i] = {itemLabel : $(this).parents('.form-item').find("label").html(), itemValue : $(this).attr("id")};
     });
-    html = "";
+    var html = "";
     if(items.length > 0) {
       html += "<ul>";
       for(var i = 0; i < items.length; i++) {
@@ -81,10 +82,10 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
     return {size: items.length, html: html};
   };
   var msw_check_selectable_items = function($area) {
-    $area1 = $area.find(".unchecked-items");
+    var $area1 = $area.find(".unchecked-items");
     $area1.has("a.selected").length > 0 ? $area.removeClass("without-selectables").addClass("with-selectables") : $area.addClass("without-selectables").removeClass("with-selectables");
     $area1.has("a").length > 0 ? $area.removeClass("without-unchecked").addClass("with-unchecked") : $area.addClass("without-unchecked").removeClass("with-unchecked");
-    $area2 = $area.find(".checked-items");
+    var $area2 = $area.find(".checked-items");
     $area2.has("a.selected").length > 0 ? $area.removeClass("without-removables").addClass("with-removables") : $area.addClass("without-removables").removeClass("with-removables");
     $area2.has("a").length > 0 ? $area.removeClass("without-checked").addClass("with-checked") : $area.addClass("without-checked").removeClass("with-checked");
   };
@@ -96,9 +97,9 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
         e.preventDefault();
       }
       else if(e.which == 13 || e.which == 46 || e.which == 8) {
-        $rel = $("#"+$(this).attr("rel"));
-        $rel.attr("checked", $rel.is(":checked") ? "" : "checked");
-        $parents = $(this).parents(".multiselect-table");
+        var $rel = $("#"+$(this).attr("rel"));
+        $rel.attr("checked", $rel.is(":checked") ? false : true);
+        var $parents = $(this).parents(".multiselect-table");
         msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
         msw_check_selectable_items($parents);
         e.preventDefault();
@@ -118,44 +119,44 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
       msw_check_selectable_items($(this).parents(".multiselect-table"));
       return false;
     }).dblclick(function() {
-      $rel = $("#"+$(this).attr("rel"));
-      $rel.attr("checked", $rel.is(":checked") ? "" : "checked");
-      $parents = $(this).parents(".multiselect-table");
+      var $rel = $("#"+$(this).attr("rel"));
+      $rel.attr("checked", $rel.is(":checked") ? false : true);
+      var $parents = $(this).parents(".multiselect-table");
       msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
       msw_check_selectable_items($parents);
       return false;
     });
     $(".multiselect-table .select-one").not(".msw-processed").addClass("msw-processed").click(function() {
-      $parents = $(this).parents(".multiselect-table");
+      var $parents = $(this).parents(".multiselect-table");
       $parents.find(".unchecked-items a.selected").removeClass("selected").each(function(){
-        $("#"+$(this).attr("rel")).attr("checked", "checked");
+        $("#"+$(this).attr("rel")).attr("checked", true);
       });
       msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
       msw_check_selectable_items($parents);
       return false;
     });
     $(".multiselect-table .deselect-one").not(".msw-processed").addClass("msw-processed").click(function() {
-        $parents = $(this).parents(".multiselect-table");
+        var $parents = $(this).parents(".multiselect-table");
         $parents.find(".checked-items a.selected").removeClass("selected").each(function(){
-          $("#"+$(this).attr("rel")).attr("checked", "");
+          $("#"+$(this).attr("rel")).attr("checked", false);
         });
         msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
         msw_check_selectable_items($parents);
         return false;
       });
     $(".multiselect-table .select-all").not(".msw-processed").addClass("msw-processed").click(function() {
-      $parents = $(this).parents(".multiselect-table");
+      var $parents = $(this).parents(".multiselect-table");
       $parents.find(".unchecked-items a").each(function(){
-        $("#"+$(this).attr("rel")).attr("checked", "checked");
+        $("#"+$(this).attr("rel")).attr("checked", true);
       });
       msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
       msw_check_selectable_items($parents);
       return false;
     });
     $(".multiselect-table .deselect-all").not(".msw-processed").addClass("msw-processed").click(function() {
-      $parents = $(this).parents(".multiselect-table");
+      var $parents = $(this).parents(".multiselect-table");
       $parents.find(".checked-items a").each(function(){
-        $("#"+$(this).attr("rel")).attr("checked", "");
+        $("#"+$(this).attr("rel")).attr("checked", false);
       });
       msw_rebuild_items_list($parents.siblings(".multiselect-widget"));
       msw_check_selectable_items($parents);
@@ -163,8 +164,9 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
     });
   };
   var msw_rebuild_items_list = function($widget) {
-    checked = msw_build_items_object($widget, "input[type=checkbox]:checked");
-    unchecked = msw_build_items_object($widget, "input[type=checkbox]:not(:checked)");
+    var checked = msw_build_items_object($widget, "input[type=checkbox]:checked");
+    var unchecked = msw_build_items_object($widget, "input[type=checkbox]:not(:checked)");
+    var $parents = $widget.siblings(".multiselect-table");
     $parents.find(".unchecked-size").html(unchecked["size"]);
     $parents.find(".checked-size").html(checked["size"]);
     $parents.find(".unchecked-items").html(unchecked["html"]);
@@ -173,8 +175,8 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
   };
   // Multi-select widget init
   $("div.form-checkboxes.multiselect-widget").not(".msw-processed").addClass("msw-processed").hide().each(function() {
-    checked = msw_build_items_object($(this), "input[type=checkbox]:checked");
-    unchecked = msw_build_items_object($(this), "input[type=checkbox]:not(:checked)");
+    var checked = msw_build_items_object($(this), "input[type=checkbox]:checked");
+    var unchecked = msw_build_items_object($(this), "input[type=checkbox]:not(:checked)");
     $(this).before("<table class='multiselect-table without-selectables without-removables"
       +(checked["size"] > 0 ? "" : " without-checked")
       +(unchecked["size"] > 0 ? "" : " without-unchecked")
@@ -200,8 +202,8 @@ Drupal.behaviors.kWeb = {attach: function(context) {(function ($) {
   });
   // Datepicker
   $("input.datepickable, input.datetimepickable").each(function() {
-    settings_string = $(this).data('settings');
-    settings = jQuery.parseJSON(settings_string.replace(/\\/g, ''));
+    var settings_string = $(this).data('settings');
+    var settings = jQuery.parseJSON(settings_string.replace(/\\/g, ''));
     if ($(this).hasClass('datepickable')) {
       $(this).datepicker(settings);
     }

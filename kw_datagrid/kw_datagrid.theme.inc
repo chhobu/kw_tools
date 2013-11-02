@@ -14,7 +14,7 @@ function theme_datagrid($variables) {
   $refresh = $datagrid->hasOp('partial-refresh');
   drupal_add_css(drupal_get_path("module", "kw_datagrid") . "/kw_datagrid.css",
       array('every_page' => TRUE));
-  if($ajax) {
+  if ($ajax) {
     drupal_add_js('misc/ajax.js');
     drupal_add_js('misc/jquery.form.js');
   }
@@ -29,7 +29,7 @@ function theme_datagrid($variables) {
   }
   // Format the table columns:
   if (count($colgroups)) {
-    foreach ($colgroups as $number => $colgroup) {
+    foreach ($colgroups as $colgroup) {
       $attributes = array();
       // Check if we're dealing with a simple or complex column
       if (isset($colgroup['data'])) {
@@ -48,7 +48,6 @@ function theme_datagrid($variables) {
       // Build colgroup
       if (is_array($cols) && count($cols)) {
         $output .= ' <colgroup' . drupal_attributes($attributes) . '>';
-        $i = 0;
         foreach ($cols as $col) {
           $output .= ' <col' . drupal_attributes($col) . ' />';
         }
@@ -72,7 +71,13 @@ function theme_datagrid($variables) {
         $header_count++;
       }
     }
-    $rows[] = array(array('data' => $empty, 'colspan' => $header_count, 'class' => array('empty', 'message')));
+    $rows[] = array(
+      array(
+        'data' => $empty,
+        'colspan' => $header_count,
+        'class' => array('empty', 'message'),
+      ),
+    );
   }
   $nb_cols = count(current($rows));
   // Format the table header:
@@ -80,7 +85,7 @@ function theme_datagrid($variables) {
   if (count($header) && !$is_empty) {
     $head_output = "";
     $sort = $datagrid->getCurrentSort();
-    if($sort > 0) {
+    if ($sort > 0) {
       $aliases = $datagrid->getSortables("aliases");
       $ts['name'] = $aliases[0];
       $ts['sort'] = $sort > 0 ? "asc" : "desc";
@@ -91,36 +96,35 @@ function theme_datagrid($variables) {
       $cell = kw_datagrid_tablesort_header($datagrid, $column_key, $cell, $header, $ts);
       $cell["id"] = $datagrid->getId() . "-col-" . $column_key;
       $cell["scope"] = "col";
-      if (isset($cell["class"]) && in_array("active",$cell["class"])) {
+      if (isset($cell["class"]) && in_array("active", $cell["class"])) {
         $active_header = $column_key;
       }
       if (isset($columns[$column_key]["modifiable"]) && $columns[$column_key]["modifiable"]) {
         $title = strip_tags(t("Mass modification of !item data", array("!item" => strip_tags($cell["data"]))));
         $cell["data"] .= l("<img src='/misc/configure.png' alt=\"" . $title . "\" title=\"" . $title . "\" />",
           $datagrid->getConstructor('page'), array(
-              "html" => TRUE,
-              "query" => array("_id" => $datagrid->getId(), "mass_edit" => $column_key),
-              "fragment" => $datagrid->getId(),
-              "attributes" => array('rel' => 'nofollow')
+            "html" => TRUE,
+            "query" => array(
+              "_id" => $datagrid->getId(),
+              "mass_edit" => $column_key,
+            ),
+            "fragment" => $datagrid->getId(),
+            "attributes" => array('rel' => 'nofollow'),
           ));
       }
       $head_output .= _theme_table_cell($cell, TRUE);
     }
-    // Using ternary operator to close the tags based on whether or not there are rows
     $head_output .= "</tr>";
     if ($head_output != "") {
       $output .= "<thead>" . $head_output . "</thead>";
     }
-  }
-  else {
-    $ts = array();
   }
   // Format the table rows:
   if (count($rows)) {
     $output .= "<tbody>\n";
     $flip = array('even' => 'odd', 'odd' => 'even');
     $class = 'even';
-    foreach ($rows as $number => $row) {
+    foreach ($rows as $row) {
       $attributes = array();
       // Check if we're dealing with a simple or complex row
       if (isset($row['data'])) {
@@ -142,7 +146,6 @@ function theme_datagrid($variables) {
         $attributes['class'][] = $class;
         // Build row
         $output .= ' <tr' . drupal_attributes($attributes) . '>';
-        $i = 0;
         foreach ($cells as $column_key => $cell) {
           if ($active_header == $column_key) {
             $cell["class"][] = "active";
@@ -191,7 +194,7 @@ function theme_datagrid($variables) {
       if ($choice == $datagrid->getPager()) {
         $items[$choice] = array(
           'class' => array('pager-current'),
-          'data' => $choice
+          'data' => $choice,
         );
       }
       else {
@@ -203,8 +206,11 @@ function theme_datagrid($variables) {
             'page_new' => $datagrid->getCurrentPage(),
             'datagrid' => $datagrid,
             'parameters' => $pg_parameters,
-            'attributes' => array('class' => array('pager-item'), 'title' => t('Display !x results per page', array('!x' => $choice)))
-          ))
+            'attributes' => array(
+              'class' => array('pager-item'),
+              'title' => t('Display !x results per page', array('!x' => $choice)),
+            ),
+          )),
         );
       }
     }
@@ -221,7 +227,7 @@ function theme_datagrid($variables) {
           'page_new' => $datagrid->getCurrentPage(),
           'datagrid' => $datagrid,
           'parameters' => $pg_parameters,
-          'attributes' => array('class' => array('pager-item'))
+          'attributes' => array('class' => array('pager-item')),
         ));
       }
     }
@@ -230,7 +236,7 @@ function theme_datagrid($variables) {
         'items' => $items,
         'title' => t('Results per page :'),
         'type' => 'ul',
-        'attributes' => array('class' => array('pager'))
+        'attributes' => array('class' => array('pager')),
       )) . "</div>";
       $footer_output_part_two .= str_replace(
         array('<h3>', '</h3>'),
@@ -252,7 +258,7 @@ function theme_datagrid($variables) {
     $footer_output_part_one .= l(t('Refresh data'), $datagrid->getPath(), array(
         'query' => $parameters,
         'fragment' => $datagrid->getId(),
-        'attributes' => $attributes
+        'attributes' => $attributes,
     ));
     $footer_output_part_one .= '</div>';
   }
@@ -274,14 +280,18 @@ function theme_datagrid($variables) {
 function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header, $ts) {
   // Special formatting for the currently sorted column header.
   if (is_array($cell) && isset($cell['field'])) {
-    $currentSort = $datagrid->getCurrentSort();
-    $sortKey = $datagrid->findSortable($key);
+    $current_sort = $datagrid->getCurrentSort();
+    $sort_key = $datagrid->findSortable($key);
     $columns = $datagrid->getColumns();
-    $link_classes = array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'sortable', 'icon');
-    if (abs($currentSort) == $sortKey) {
+    $link_classes = array(
+      $datagrid->isUsingAjax() ? 'use-ajax' : 'standard',
+      'sortable',
+      'icon',
+    );
+    if (abs($current_sort) == $sort_key) {
       $cell['class'][] = 'active';
-      $link_classes[] = $currentSort > 0 ? "ascending" : "descending";
-      if ($currentSort > 0) {
+      $link_classes[] = $current_sort > 0 ? "ascending" : "descending";
+      if ($current_sort > 0) {
         $title = t('sort by @s descending', array('@s' => $columns[$key]['label']));
       }
     }
@@ -293,14 +303,14 @@ function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header
         'attributes' => array(
           'rel' => 'nofollow',
           'title' => $title,
-          'class' => $link_classes
+          'class' => $link_classes,
         ),
         'query' => array_merge($ts['query'], array(
-          '_s' => $sortKey == $currentSort ? -$sortKey : $sortKey,
-          '_p' => 0
+          '_s' => $sort_key == $current_sort ? -$sort_key : $sort_key,
+          '_p' => 0,
         )),
         'fragment' => $datagrid->getId(),
-        'html' => TRUE
+        'html' => TRUE,
       )
     );
     unset($cell['field'], $cell['sort']);
@@ -311,8 +321,8 @@ function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header
 function theme_datagrid_pager($variables) {
   /* @var $datagrid  KwDatagrid */
   $datagrid = $variables['datagrid'];
-  if($datagrid->getPager() == 0) {
-    return;
+  if ($datagrid->getPager() == 0) {
+    return NULL;
   }
   $pager_total = $datagrid->getTotalResults();
   $current_page = $datagrid->getCurrentPage();
@@ -344,10 +354,28 @@ function theme_datagrid_pager($variables) {
   }
   // End of generation loop preparation.
   if ($pager_max > 1) {
-    $li_first = theme('datagrid_pager_first', array('text' => t('« first'), 'datagrid' => $datagrid, 'parameters' => $parameters));
-    $li_previous = theme('datagrid_pager_previous', array('text' => t('‹ previous'), 'datagrid' => $datagrid, 'interval' => 1, 'parameters' => $parameters));
-    $li_next = theme('datagrid_pager_next', array('text' => t('next ›'), 'datagrid' => $datagrid, 'interval' => 1, 'parameters' => $parameters));
-    $li_last = theme('datagrid_pager_last', array('text' => t('last »'), 'datagrid' => $datagrid, 'parameters' => $parameters));
+    $li_first = theme('datagrid_pager_first', array(
+      'text' => t('« first'),
+      'datagrid' => $datagrid,
+      'parameters' => $parameters,
+    ));
+    $li_previous = theme('datagrid_pager_previous', array(
+      'text' => t('‹ previous'),
+      'datagrid' => $datagrid,
+      'interval' => 1,
+      'parameters' => $parameters,
+    ));
+    $li_next = theme('datagrid_pager_next', array(
+      'text' => t('next ›'),
+      'datagrid' => $datagrid,
+      'interval' => 1,
+      'parameters' => $parameters,
+    ));
+    $li_last = theme('datagrid_pager_last', array(
+      'text' => t('last »'),
+      'datagrid' => $datagrid,
+      'parameters' => $parameters,
+    ));
     if ($li_first) {
       $items[] = array(
         'class' => array('pager-first'),
@@ -373,7 +401,12 @@ function theme_datagrid_pager($variables) {
         if ($i < $pager_current) {
           $items[] = array(
             'class' => array('pager-item'),
-            'data' => theme('datagrid_pager_previous', array('text' => $i, 'datagrid' => $datagrid, 'interval' => ($pager_current - $i), 'parameters' => $parameters)),
+            'data' => theme('datagrid_pager_previous', array(
+              'text' => $i,
+              'datagrid' => $datagrid,
+              'interval' => ($pager_current - $i),
+              'parameters' => $parameters,
+            )),
           );
         }
         if ($i == $pager_current) {
@@ -385,7 +418,12 @@ function theme_datagrid_pager($variables) {
         if ($i > $pager_current) {
           $items[] = array(
             'class' => array('pager-item'),
-            'data' => theme('datagrid_pager_next', array('text' => $i, 'datagrid' => $datagrid, 'interval' => ($i - $pager_current), 'parameters' => $parameters)),
+            'data' => theme('datagrid_pager_next', array(
+              'text' => $i,
+              'datagrid' => $datagrid,
+              'interval' => ($i - $pager_current),
+              'parameters' => $parameters,
+            )),
           );
         }
       }
@@ -413,13 +451,14 @@ function theme_datagrid_pager($variables) {
       'items' => $items,
       'title' => t('Pages :'),
       'type' => 'ul',
-      'attributes' => array('class' => array('pager'))
+      'attributes' => array('class' => array('pager')),
     ));
   }
 }
 
 function theme_datagrid_pager_first($variables) {
   $text = $variables['text'];
+  /* @var KwDatagrid $datagrid */
   $datagrid = $variables['datagrid'];
   $parameters = $variables['parameters'];
   $output = '';
@@ -436,6 +475,7 @@ function theme_datagrid_pager_first($variables) {
 
 function theme_datagrid_pager_last($variables) {
   $text = $variables['text'];
+  /* @var KwDatagrid $datagrid */
   $datagrid = $variables['datagrid'];
   $parameters = $variables['parameters'];
   $output = '';
@@ -453,6 +493,7 @@ function theme_datagrid_pager_last($variables) {
 
 function theme_datagrid_pager_previous($variables) {
   $text = $variables['text'];
+  /* @var KwDatagrid $datagrid */
   $datagrid = $variables['datagrid'];
   $interval = $variables['interval'];
   $parameters = $variables['parameters'];
@@ -481,6 +522,7 @@ function theme_datagrid_pager_previous($variables) {
 
 function theme_datagrid_pager_next($variables) {
   $text = $variables['text'];
+  /* @var KwDatagrid $datagrid */
   $datagrid = $variables['datagrid'];
   $interval = $variables['interval'];
   $parameters = $variables['parameters'];
@@ -511,6 +553,7 @@ function theme_datagrid_pager_next($variables) {
 function theme_datagrid_pager_link($variables) {
   $text = $variables['text'];
   $page_new = $variables['page_new'];
+  /* @var KwDatagrid $datagrid */
   $datagrid = $variables['datagrid'];
   $parameters = $variables['parameters'];
   $attributes = $variables['attributes'];
@@ -539,7 +582,7 @@ function theme_datagrid_pager_link($variables) {
   return l($text, $datagrid->getPath(), array(
     'attributes' => $attributes,
     'query' => $parameters,
-    'fragment' => $datagrid->getId()
+    'fragment' => $datagrid->getId(),
   ));
 }
 
@@ -555,26 +598,26 @@ function theme_datagrid_active_filters($variables) {
     "remove" => array("data" => "-"),
   );
   $rows = array();
-  foreach($children as $child) {
+  foreach ($children as $child) {
     $row["logical"] = array(
       "data" => (isset($form[$child]["filter-mode-" . $child]) ?
           theme($form[$child]["filter-mode-" . $child]["#type"],
-              array("element" => $form[$child]["filter-mode-" .$child])) : "")
+              array("element" => $form[$child]["filter-mode-" . $child])) : ""),
     );
     $row["field"] = array(
       "data" => theme("form_element_label",
-          array("element" => $form[$child]["filter-value-" .$child]))
+          array("element" => $form[$child]["filter-value-" . $child])),
     );
     $row["operator"] = array(
       "data" => theme($form[$child]["filter-op-" . $child]["#type"],
-          array("element" => $form[$child]["filter-op-" .$child]))
+          array("element" => $form[$child]["filter-op-" . $child])),
     );
     $row["value"] = array(
       "data" => theme($form[$child]["filter-value-" . $child]["#type"],
-          array("element" => $form[$child]["filter-value-" .$child]))
+          array("element" => $form[$child]["filter-value-" . $child])),
     );
     $row["remove"] = array(
-      "data" => drupal_render($form[$child]["filter-remove-" .$child])
+      "data" => drupal_render($form[$child]["filter-remove-" . $child]),
     );
     $rows[] = $row;
   }
@@ -583,7 +626,7 @@ function theme_datagrid_active_filters($variables) {
 }
 
 function theme_datagrid_item_navigation($variables) {
-  drupal_add_css(drupal_get_path("module","kw_datagrid") . "/kw_datagrid.css",
+  drupal_add_css(drupal_get_path("module", "kw_datagrid") . "/kw_datagrid.css",
       array('every_page' => TRUE));
   $output = "<div class='kw-datagrid-item'>";
   if (!is_null($variables["title"])) {
@@ -591,7 +634,7 @@ function theme_datagrid_item_navigation($variables) {
     $title_content .= (!is_null($variables["title"]["custom"]) ? $variables["title"]["custom"] . " " : "");
     $title_content .= (!is_null($variables["title"]["node"]) ? $variables["title"]["node"] : "");
     $title_content .= ($title_content == "" ? "" : " - ") . $variables["title"]["datagrid"];
-    $output .= "<div class='nav-title icon radio-checked'>". $title_content . "</div>";
+    $output .= "<div class='nav-title icon radio-checked'>" . $title_content . "</div>";
   }
   $output .= "<div class='nav-content'>";
   if (!is_null($variables["prev"]) || !is_null($variables["next"])) {
@@ -601,11 +644,12 @@ function theme_datagrid_item_navigation($variables) {
       foreach ($prev["rows"] as $row) {
         $content[] = $row["data"];
       }
-      $output .= "<div class='nav-prev'>" . l($prev["label"], $prev["link"], array("attributes" => array(
+      $output .= "<div class='nav-prev'>" . l($prev["label"], $prev["link"], array(
+        "attributes" => array(
           "class" => array("prev", "icon"),
-          "title" => strip_tags(implode(" | ", $content)))
+          "title" => strip_tags(implode(" | ", $content))),
         )) . (count($prev["rows"]) == 0 ?
-        "" : " : ". implode(" | ", $content)) . "</div>";
+        "" : " : " . implode(" | ", $content)) . "</div>";
     }
     if (!is_null($variables["next"])) {
       $next = $variables["next"];
@@ -613,11 +657,12 @@ function theme_datagrid_item_navigation($variables) {
       foreach ($next["rows"] as $row) {
         $content[] = $row["data"];
       }
-      $output .= "<div class='nav-next'>" . l($next["label"], $next["link"], array("attributes" => array(
+      $output .= "<div class='nav-next'>" . l($next["label"], $next["link"], array(
+        "attributes" => array(
           "class" => array("next", 'icon'),
-          "title" => strip_tags(implode(" | ", $content)))
-        )). (count($next["rows"]) == 0 ?
-        "" : " : ". implode(" | ", $content)) . "</div>";
+          "title" => strip_tags(implode(" | ", $content))),
+        )) . (count($next["rows"]) == 0 ?
+        "" : " : " . implode(" | ", $content)) . "</div>";
     }
   }
   $output .= "<div class='nav-back'>" . $variables["title"]["list"] . "</div>";
@@ -640,12 +685,13 @@ function theme_datagrid_mass_edit($variables) {
     foreach ($row as $column => $data) {
       if ($column == $edit["column"]) {
         $rows[$key][$column] = (isset($form["instance-" . $key]["#field_prefix"]) ? $form["instance-" . $key]["#field_prefix"] : "")
-          .theme($form["instance-" . $key]["#type"], array("element" => $form["instance-" . $key]))
-          .(isset($form["instance-" . $key]["#field_suffix"]) ? $form["instance-" . $key]["#field_suffix"] : "");
+          . theme($form["instance-" . $key]["#type"], array(
+            "element" => $form["instance-" . $key],
+          )) . (isset($form["instance-" . $key]["#field_suffix"]) ? $form["instance-" . $key]["#field_suffix"] : "");
       }
       elseif ($column == $form["title_column"]["#value"]) {
         $rows[$key][$column]["data"] = theme("form_element_label",
-          array("element" => $form["instance-" .$key]));
+          array("element" => $form["instance-" . $key]));
       }
     }
   }
@@ -664,7 +710,7 @@ function theme_datagrid_block($variables) {
   /* @var $datagrid  KwDatagrid */
   $datagrid = $variables["datagrid"];
   if (empty($content)) {
-    return;
+    return NULL;
   }
   $output = "<div id='" . $block['html_id'] . "' class='" . strtolower($block['id']) . "'>";
   if (!empty($block['title']) && $block['show_title']) {
@@ -686,13 +732,16 @@ function theme_datagrid_block($variables) {
       . '/img/close-icon3.png" alt="' . $block['close_label'] . '" title="' . $block['close_label'] . '" />',
       $datagrid->getPath(), array(
         'attributes' => array(
-            'class' => array($datagrid->isUsingAjax() ? 'use-ajax' : 'standard', 'close-button'),
-            'rel' => 'nofollow'
+          'class' => array(
+            $datagrid->isUsingAjax() ? 'use-ajax' : 'standard',
+            'close-button',
+          ),
+          'rel' => 'nofollow',
         ),
         'query' => $parameters,
         'fragment' => $datagrid->getId(),
-        'html' => TRUE
-    ));
+        'html' => TRUE,
+      ));
     $output .= "</div>";
   }
   $output .= "<div class='block-content'>" . $content . "</div>";
@@ -728,7 +777,7 @@ function theme_datagrid_advanced_controls($variables) {
         $classes[] = 'activated';
         $output .= l(t('Hide filter panel'), $datagrid->getPath(), array(
             'query' => $filters_toogle_parameters,
-            'attributes' => array('class' => $classes, 'rel' => 'nofollow')
+            'attributes' => array('class' => $classes, 'rel' => 'nofollow'),
         ));
         $result = $datagrid->buildFilterForm();
         $panel = drupal_render($result);
@@ -737,7 +786,7 @@ function theme_datagrid_advanced_controls($variables) {
         $filters_toogle_parameters['_o'] = 'f';
         $output .= l(t('Show filter panel'), $datagrid->getPath(), array(
             'query' => $filters_toogle_parameters,
-            'attributes' => array('class' => $classes, 'rel' => 'nofollow')
+            'attributes' => array('class' => $classes, 'rel' => 'nofollow'),
         ));
       }
       $output .= "</div>";
@@ -783,36 +832,40 @@ function theme_datagrid_advanced_controls($variables) {
           $asc_parameters['_s'] = $value;
           $asc_parameters['_p'] = 0;
           $asc_link = l(t('Ascending'), $datagrid->getPath(), array(
-              'query' => $asc_parameters,
-              'attributes' => array(
-                  'class' => $asc_classes,
-                  'title' => t('Sort by !name ascending', array('!name' => $label)),
-                  'rel' => 'nofollow'
-              ),
-              'fragment' => $datagrid->getId()
+            'query' => $asc_parameters,
+            'attributes' => array(
+              'class' => $asc_classes,
+              'title' => t('Sort by !name ascending', array('!name' => $label)),
+              'rel' => 'nofollow',
+            ),
+            'fragment' => $datagrid->getId(),
           ));
           $desc_parameters['_s'] = -$value;
           $desc_parameters['_p'] = 0;
           $desc_link = l(t('Descending'), $datagrid->getPath(), array(
-              'query' => $desc_parameters,
-              'attributes' => array(
-                  'class' => $desc_classes,
-                  'title' => t('Sort by !name descending', array('!name' => $label)),
-                  'rel' => 'nofollow'
-              ),
-              'fragment' => $datagrid->getId()
+            'query' => $desc_parameters,
+            'attributes' => array(
+              'class' => $desc_classes,
+              'title' => t('Sort by !name descending', array('!name' => $label)),
+              'rel' => 'nofollow',
+            ),
+            'fragment' => $datagrid->getId(),
           ));
-          $row[] = array('data' => $asc_link . ' | '. $desc_link);
+          $row[] = array('data' => $asc_link . ' | ' . $desc_link);
           $rows[] = $row;
         }
         $header = array(t('Sort parameter'), t('Sort order'));
-        $panel = theme('table', array('header' => $header, 'rows' => $rows, 'sticky' => FALSE));
+        $panel = theme('table', array(
+          'header' => $header,
+          'rows' => $rows,
+          'sticky' => FALSE,
+        ));
       }
       else {
         $sort_toogle_parameters['_o'] = 's';
         $output .= l(t('Show sort panel'), $datagrid->getPath(), array(
             'query' => $sort_toogle_parameters,
-            'attributes' => array('class' => $classes, 'rel' => 'nofollow')
+            'attributes' => array('class' => $classes, 'rel' => 'nofollow'),
         ));
       }
       $output .= "</div>";
@@ -835,17 +888,12 @@ function theme_datagrid_advanced_controls($variables) {
       $classes[] = 'activated';
       $output .= l(t('Hide columns panel'), $datagrid->getPath(), array(
           'query' => $columns_toogle_parameters,
-          'attributes' => array('class' => $classes, 'rel' => 'nofollow')
+          'attributes' => array('class' => $classes, 'rel' => 'nofollow'),
       ));
       $columns = $datagrid->listSelectableColumns();
-      $header = array(
-        array('data' => t('Column')),
-        array('data' => t('Action'))
-      );
       $rows = array();
       foreach ($columns as $key => $column) {
         $row = array();
-        //$row[] = array('data' => $column);
         $row[] = $column;
         $columns_parameters = $parameters;
         $classes = array('datagrid-button', 'icon');
@@ -869,21 +917,18 @@ function theme_datagrid_advanced_controls($variables) {
         }
         $action = l($label, $datagrid->getPath(), array(
             'query' => $columns_parameters,
-            'attributes' => array('class' => $classes, 'rel' => 'nofollow')
+            'attributes' => array('class' => $classes, 'rel' => 'nofollow'),
         ));
         $row[] = $action;
         $rows[] = implode(' : ', $row);
-        //$row[] = array('data' => $action);
-        //$rows[] = $row;
       }
       $panel = theme('item_list', array('items' => $rows, 'attributes' => array('class' => 'inline')));
-      //$panel = theme('table', array('header' => $header, 'rows' => $rows, 'sticky' => FALSE));
     }
     else {
       $columns_toogle_parameters['_o'] = 'c';
       $output .= l(t('Show columns panel'), $datagrid->getPath(), array(
           'query' => $columns_toogle_parameters,
-          'attributes' => array('class' => $classes, 'rel' => 'nofollow')
+          'attributes' => array('class' => $classes, 'rel' => 'nofollow'),
       ));
     }
     $output .= "</div>";
@@ -892,24 +937,27 @@ function theme_datagrid_advanced_controls($variables) {
   if (count($datagrid->getConfigurableBlocks()) > 0 && $datagrid->getUnfilteredTotalResults() > 0) {
     $output .= "<div class='datagrid-advanced-control datagrid-blocks'>";
     $current_blocks = $datagrid->retrieveSelectedBlocks();
-    if ($current_blocks  !== FALSE && $current_blocks != $datagrid->getDefaultBlocks()) {
+    if ($current_blocks !== FALSE && $current_blocks != $datagrid->getDefaultBlocks()) {
       $has_custom_blocks = TRUE;
     }
     if (empty($current_blocks[0])) {
       unset($current_blocks[0]);
     }
-    foreach ($datagrid->getConfigurableBlocks() as $key => $block) {
+    foreach ($datagrid->getConfigurableBlocks() as $block) {
       $block_parameters = $parameters;
       if ($block['hidden']) {
         $current_blocks[] = $block['id'];
         $block_parameters['_b'] = implode(';', $current_blocks);
         $output .= l($block['open_label'], $datagrid->getPath(), array(
-            'query' => $block_parameters,
-            'fragment' => $block['html_id'],
-            'attributes' => array('class' => array('datagrid-button'), 'rel' => 'nofollow')
+          'query' => $block_parameters,
+          'fragment' => $block['html_id'],
+          'attributes' => array(
+            'class' => array('datagrid-button'),
+            'rel' => 'nofollow',
+          ),
         ));
       }
-      else if ($block['hideable']) {
+      elseif ($block['hideable']) {
         if (!empty($current_blocks)) {
           unset($current_blocks[array_search($block['id'], $current_blocks)]);
           $block_parameters['_b'] = implode(';', $current_blocks);
@@ -918,12 +966,16 @@ function theme_datagrid_advanced_controls($variables) {
           $block_parameters['_b'] = '';
         }
         $output .= l($block['close_label'], $datagrid->getPath(), array(
-            'query' => $block_parameters,
-            'fragment' => $datagrid->getId(),
-            'attributes' => array(
-                'rel' => 'nofollow',
-                'class' => array('datagrid-button', 'activated', $datagrid->isUsingAjax() ? 'use-ajax' : NULL)
-            )
+          'query' => $block_parameters,
+          'fragment' => $datagrid->getId(),
+          'attributes' => array(
+            'rel' => 'nofollow',
+            'class' => array(
+              'datagrid-button',
+              'activated',
+              $datagrid->isUsingAjax() ? 'use-ajax' : NULL,
+            ),
+          ),
         ));
       }
     }
@@ -935,12 +987,15 @@ function theme_datagrid_advanced_controls($variables) {
   if ($has_filters || $has_custom_pager || $has_custom_sort || $has_custom_columns || $has_custom_blocks) {
     $output .= "<div class='datagrid-advanced-control datagrid-reset'>"
       . l(t('Reset'), $datagrid->getPath(), array(
-          'query' => array('_id' => $datagrid->getId(), '_r' => 2),
-          'fragment' => $datagrid->getId(),
-          'attributes' => array(
-              'rel' => 'nofollow',
-              'class' => array('datagrid-button', $datagrid->isUsingAjax() && count($datagrid->getConfigurableBlocks()) == 0 ? 'use-ajax' : NULL)
-          )
+        'query' => array('_id' => $datagrid->getId(), '_r' => 2),
+        'fragment' => $datagrid->getId(),
+        'attributes' => array(
+          'rel' => 'nofollow',
+          'class' => array(
+            'datagrid-button',
+            $datagrid->isUsingAjax() && count($datagrid->getConfigurableBlocks()) == 0 ? 'use-ajax' : NULL,
+          ),
+        ),
       ))
       . "</div>";
   }

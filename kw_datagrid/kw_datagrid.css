@@ -11,6 +11,10 @@
   width: 100%;}
 .kw-datagrid .form-item-filter-select {
   display: inline-block;}
+.kw-datagrid .form-item-filter-select label {
+  display: inline;}
+.kw-datagrid .form-item-filter-select label:after {
+  content: ' : ';}
 .kw-datagrid .form-item .filter-mode {
   float: left;
   margin-right: 0.5em;}
@@ -38,10 +42,10 @@
 .kw-datagrid td.active {
   background-color: transparent;}
 .kw-datagrid fieldset.active-filters-container {
-  border: 0px;
-  padding: 0px;}
+  border: 0;
+  padding: 0;}
 .kw-datagrid fieldset.active-filters-container legend {
-  padding: 0px;}
+  padding: 0;}
 .kw-datagrid .block-title {
   text-align: center;
   font-weight: bold;
@@ -77,7 +81,6 @@ td .digit {
 .datagrid-pager {
   text-align: center;}
 .datagrid-advanced-control {
-  display: inline;
   display: inline-block;
   line-height: 190%;
   padding: 0 0.5em;
@@ -121,7 +124,7 @@ td .digit {
   padding: 0 0.5em;
   white-space: nowrap;}
 .datagrid-panel .item-list ul.inline li.last {
-  border-right: 0px;}
+  border-right: 0;}
 .datagrid-panel td {
   line-height: 150%;}
 .datepopup-filter img {
