@@ -22,9 +22,9 @@ function kw_tools_menu() {
   $items = array();
   $items["kw/help"] = array(
     'title' => 'Kweb development help page',
-    'page callback' =>  'kw_tools_help_page',
+    'page callback' => 'kw_tools_help_page',
     'access arguments' => array('access administration pages'),
-    'type' => MENU_CALLBACK
+    'type' => MENU_CALLBACK,
   );
   $items["kw/popup/%ctools_js/%"] = array(
     'title' => 'View node content in modal window',
@@ -41,8 +41,8 @@ function kw_tools_menu() {
  */
 function kw_tools_entity_info_alter(&$entity_info) {
   $entity_info['node']['view modes']['modal'] = array(
-      'label' => t('Modal'),
-      'custom settings' => FALSE,
+    'label' => t('Modal'),
+    'custom settings' => FALSE,
   );
 }
 
@@ -55,7 +55,7 @@ function kw_tools_block_info() {
     'weight' => 0,
     'status' => 1,
     'region' => 'footer',
-    'cache' => DRUPAL_CACHE_PER_USER
+    'cache' => DRUPAL_CACHE_PER_USER,
   );
   return $blocks;
 }
@@ -87,12 +87,13 @@ function kw_tools_display_block_kwfooter() {
     $output .= l(t("Not connected"), 'user/login');
   }
   else {
-    $output .= t("Connected as !user", array("!user" => theme("username",
-        array("account" => $user))));
+    $output .= t("Connected as !user", array(
+      "!user" => theme("username", array("account" => $user)),
+    ));
   }
   $time = "<span class='icon calendar'>" . format_date(REQUEST_TIME, "custom", variable_get("date_format_just_the_date", "Y-m-d")) . "</span>";
   $hour = "<span class='icon clock'>" . format_date(REQUEST_TIME, "custom", variable_get("date_format_just_the_time", "H:i:s")) . "</span>";
-  $output .= $separator . $time ." - ". $hour;
+  $output .= $separator . $time . ' - ' . $hour;
   $output .= $separator . "<a href='#Header' class='top icon'>" . t("Back to top") . "</a>";
   return $output;
 }
@@ -103,7 +104,7 @@ function kw_tools_display_block_kwfooter() {
 function kw_tools_date_format_types() {
   return array(
     'just_the_date' => t('Just the date'),
-    'just_the_time' => t('Just the time')
+    'just_the_time' => t('Just the time'),
   );
 }
 
@@ -143,9 +144,9 @@ function kw_tools_form_alter(&$form, $form_state, $form_id) {
       '#collapsible' => TRUE,
     );
     $options = array(
-          0 => t('None.'),
-          1 => t('Collapsible, expanded by default.'),
-          2 => t('Collapsible, collapsed by default.')
+      0 => t('None.'),
+      1 => t('Collapsible, expanded by default.'),
+      2 => t('Collapsible, collapsed by default.'),
     );
     $current_block_id = str_replace('_', '-', $form['module']['#value']) . '-' . str_replace('_', '-', $form['delta']['#value']);
     if (isset($settings['collapse'][$current_block_id]) && in_array($settings['collapse'][$current_block_id], array_keys($options))) {
@@ -163,8 +164,7 @@ function kw_tools_form_alter(&$form, $form_state, $form_id) {
     $form['kw_blocks']['additional_css_classes'] = array(
       '#type' => 'textfield',
       '#title' => t('Additional CSS classes'),
-      '#default_value' => isset($settings['css'][$current_block_id]) ?
-        implode(' ', $settings['css'][$current_block_id]) : '',
+      '#default_value' => isset($settings['css'][$current_block_id]) ? implode(' ', $settings['css'][$current_block_id]) : '',
     );
   }
 }
@@ -178,7 +178,7 @@ function kw_tools_preprocess_block(&$vars) {
   $settings = variable_get('kw_blocks_settings', array());
   if (isset($settings['collapse'][$block_id])) {
     drupal_add_js(drupal_get_path('module', 'kw_tools') . '/js/kw_block.js', array(
-      'every_page' => TRUE
+      'every_page' => TRUE,
     ));
     $vars['classes_array'][] = 'collapsible';
     if ($settings['collapse'][$block_id] == 2) {
@@ -235,7 +235,12 @@ function kw_tools_open_node_in_popup($js, $nid) {
   }
   if ($js && module_exists('ctools')) {
     $type = node_type_load($node->type);
-    $title = $type->name;
+    if ($type) {
+      $title = $type->name;
+    }
+    else {
+      $title = $node->title;
+    }
     $content = node_view($node, 'modal');
     ctools_include('modal');
     ctools_modal_render($title, $content);
@@ -247,10 +252,11 @@ function kw_tools_open_node_in_popup($js, $nid) {
 
 /**
  * Ajoute des données sur un champ de formulaire afin de le coordonner avec un widget jquery
- * @param unknown_type $field
- * @param unknown_type $extra_classes
- * @param unknown_type $params
- * @param unknown_type $form
+ *
+ * @param string $field
+ * @param array $extra_classes
+ * @param array $params
+ * @param array $form
  */
 function kw_tools_add_special_widget($field, $extra_classes, $params, &$form) {
   $params_id = "kwwp-" . $field;
@@ -258,7 +264,7 @@ function kw_tools_add_special_widget($field, $extra_classes, $params, &$form) {
     $form[$field][$params_id] = array(
       "#type" => "hidden",
       "#value" => json_encode($params),
-      "#attributes" => array("id" => $params_id)
+      "#attributes" => array("id" => $params_id),
     );
     $extra_classes[] = $params_id;
   }
@@ -270,29 +276,35 @@ function kw_tools_add_special_widget($field, $extra_classes, $params, &$form) {
 }
 
 /**
- * Regroupe des champs dans un groupe de type fieldset
- * @param unknown_type $name
- * @param unknown_type $title
- * @param unknown_type $fields
- * @param unknown_type $form
- * @param unknown_type $options
+ * Regroupe des champs dans un groupe de type fieldset.
+ *
+ * @param string $name
+ * @param string $title
+ * @param array $fields
+ * @param array $form
+ * @param array $options
  */
 function kw_tools_create_fieldset($name, $title, $fields, &$form, $options = array()) {
   $form[$name] = array_merge($options, array(
     "#type" => "fieldset",
     "#weight" => isset($form[current($fields)]["#weight"]) ? $form[current($fields)]["#weight"] : 0,
-    "#title" => $title
+    "#title" => $title,
   ));
-  foreach($fields as $value) {
+  foreach ($fields as $value) {
     $form[$name][$value] = $form[$value];
     $form[$value] = array("#language" => $form["language"]["#value"]);
   }
 }
 
 /**
- * Renvoie un nombre formaté
- * @param mixed $input, la chaîne à formater
- * @param array $options, peut contenir les options precision, decimal, thousands, suffix, prefix
+ * Renvoie un nombre formaté.
+ *
+ * @param mixed $input
+ *   chaîne à formater
+ * @param array $options
+ *   peut contenir les options precision, decimal, thousands, suffix, prefix
+ *
+ * @return string
  */
 function kw_tools_number_format($input, $options = array()) {
   if (!is_numeric($input)) {
@@ -318,14 +330,17 @@ function kw_tools_number_format($input, $options = array()) {
   if (isset($options["prefix"])) {
     $prefix = $options["prefix"];
   }
-  return $prefix.number_format($input, $precision, $decimal, $thousands).$suffix;
+  return $prefix . number_format($input, $precision, $decimal, $thousands) . $suffix;
 }
 
 /**
- * Renvoie un contenu différent si une variable est nulle (ou vide) ou non nulle
- * @param unknown_type $value
- * @param unknown_type $null
- * @param unknown_type $non_null
+ * Renvoie un contenu différent si une variable est nulle/vide ou non nulle.
+ *
+ * @param string $value
+ * @param string $null
+ * @param string $non_null
+ *
+ * @return string
  */
 function kw_tools_null_dispatcher($value, $null, $non_null) {
   if (is_null($value) || $value == "") {
@@ -338,10 +353,8 @@ function kw_tools_null_dispatcher($value, $null, $non_null) {
 
 /**
  * Affiche une page récapitulant certains points utiles à la programmation...
- * Enter description here ...
  */
 function kw_tools_help_page() {
-  $old_fields = field_read_fields();
   $fields = field_info_field_types();
   $widgets = field_info_widget_types();
   $formatters = field_info_formatter_types();
@@ -350,7 +363,7 @@ function kw_tools_help_page() {
     'type' => array('data' => t('Type')),
     'settings' => array('data' => t('Settings')),
     'instance_settings' => array('data' => t('Instance settings')),
-    'widget' => array('data' => t('Widgets'))
+    'widget' => array('data' => t('Widgets')),
   );
   $rows = array();
   foreach ($fields as $key => $field) {
@@ -370,21 +383,36 @@ function kw_tools_help_page() {
     }
     $rows[] = array(
       'type' => array('data' => '<strong>' . $key . '</strong><br />' . $field['description']),
-      'settings' => array('data' =>
-         theme('item_list', array('items' => $settings, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
-       ),
-      'instance_settings' => array('data' =>
-         theme('item_list', array('items' => $instance_settings, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
-       ),
-      'widgets' => array('data' =>
-         theme('item_list', array('items' => $field_widgets, 'title' => NULL, 'type' => 'ul', 'attributes' => array()))
-       )
+      'settings' => array(
+        'data' => theme('item_list', array(
+            'items' => $settings,
+            'title' => NULL,
+            'type' => 'ul',
+            'attributes' => array(),
+          )),
+      ),
+      'instance_settings' => array(
+        'data' => theme('item_list', array(
+            'items' => $instance_settings,
+            'title' => NULL,
+            'type' => 'ul',
+            'attributes' => array(),
+          )),
+      ),
+      'widgets' => array(
+        'data' => theme('item_list', array(
+            'items' => $field_widgets,
+            'title' => NULL,
+            'type' => 'ul',
+            'attributes' => array(),
+          )),
+      ),
     );
   }
-  $html = '<h2>'. t('Field types') . '</h2>';
+  $html = '<h2>' . t('Field types') . '</h2>';
   $html .= theme('table', array('header' => $header, 'rows' => $rows));
   // Widgets info
-  $html .= '<h2>' .t('Widget types') . '</h2>';
+  $html .= '<h2>' . t('Widget types') . '</h2>';
   $header = array(
     'widget' => array('data' => t('Widget')),
     'settings' => array('data' => t('Settings')),
@@ -399,12 +427,19 @@ function kw_tools_help_page() {
     $rows[] = array(
       'widget' => array('data' => '<strong>' . $key . '</strong><br />' . $widget['label']),
       'settings' => array('data' => implode(', ', $settings)),
-      'fields' => array('data' => theme('item_list', array('items' => $widget['field types'], 'type' => 'ul', 'title' => NULL, 'attributes' => array())))
+      'fields' => array(
+        'data' => theme('item_list', array(
+          'items' => $widget['field types'],
+          'type' => 'ul',
+          'title' => NULL,
+          'attributes' => array(),
+        )),
+      ),
     );
   }
   $html .= theme('table', array('header' => $header, 'rows' => $rows));
   // Formatters info
-  $html .= '<h2>'. t('Formatters') . '</h2>';
+  $html .= '<h2>' . t('Formatters') . '</h2>';
   $header = array(
     'formatter' => array('data' => t('Formatter')),
     'settings' => array('data' => t('Settings')),
@@ -419,12 +454,19 @@ function kw_tools_help_page() {
     $rows[] = array(
       'formatter' => array('data' => '<strong>' . $key . '</strong><br />' . $formatter['label']),
       'settings' => array('data' => implode(', ', $settings)),
-      'fields' => array('data' => theme('item_list', array('items' => $formatter['field types'], 'type' => 'ul', 'title' => NULL, 'attributes' => array())))
+      'fields' => array(
+        'data' => theme('item_list', array(
+          'items' => $formatter['field types'],
+          'type' => 'ul',
+          'title' => NULL,
+          'attributes' => array(),
+        )),
+      ),
     );
   }
   $html .= theme('table', array('header' => $header, 'rows' => $rows));
   // Permission info
-  $html .= '<h2>' .t('Permission list') . '</h2>';
+  $html .= '<h2>' . t('Permission list') . '</h2>';
   $perms = array();
   foreach (module_list(FALSE, FALSE, TRUE) as $module) {
     if ($permissions = module_invoke($module, 'permission')) {
@@ -435,13 +477,17 @@ function kw_tools_help_page() {
     }
   }
   sort($perms);
-  $html .= theme("item_list", array("items" => $perms, "title" => NULL, "type" => "ul", "attributes" => array()));
+  $html .= theme("item_list", array(
+    "items" => $perms,
+    "title" => NULL,
+    "type" => "ul",
+    "attributes" => array(),
+  ));
   return $html;
 }
 
 /**
- * Création simultanée de champs et d'instances
- * @param unknown_type $fields
+ * Création simultanée de champs et d'instances.
  */
 function kw_tools_install_fields($fields, $node_type) {
   $old_fields = field_read_fields();
@@ -500,28 +546,31 @@ function kw_tools_install_fields($fields, $node_type) {
 // --------------- HELPER FUNCTIONS ----------------
 // -------------------------------------------------
 function array_diff_assoc_recursive($array1, $array2) {
-  foreach($array1 as $key => $value) {
-    if(is_array($value)) {
-      if(!isset($array2[$key])) {
+  foreach ($array1 as $key => $value) {
+    if (is_array($value)) {
+      if (!isset($array2[$key])) {
         $difference[$key] = $value;
       }
-      elseif(!is_array($array2[$key])) {
+      elseif (!is_array($array2[$key])) {
         $difference[$key] = $value;
       }
       else {
         $new_diff = array_diff_assoc_recursive($value, $array2[$key]);
-        if($new_diff != FALSE) {
+        if ($new_diff != FALSE) {
           $difference[$key] = $new_diff;
         }
       }
     }
-    elseif(!isset($array2[$key]) || $array2[$key] != $value) {
+    elseif (!isset($array2[$key]) || $array2[$key] != $value) {
       $difference[$key] = $value;
     }
   }
   return !isset($difference) ? array() : $difference;
 }
 
-function __debug($var) {
-  echo "<pre>" . print_r($var, TRUE) . "</pre>";die();
+function __debug($var, $die = TRUE) {
+  echo "<pre>" . print_r($var, TRUE) . "</pre>";
+  if ($die) {
+    die();
+  }
 }
