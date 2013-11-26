@@ -241,7 +241,13 @@ class KwDatagrid {
       return $_SESSION[$id]['constructor'];
     }
     $q = db_select('kw_datagrid', 'k');
-    $q->fields('k', array('function', 'args', 'page', 'parameters', 'required_file'));
+    $q->fields('k', array(
+      'function',
+      'args',
+      'page',
+      'parameters',
+      'required_file',
+    ));
     $q->condition('name', $id);
     $result = $q->execute()->fetchAssoc();
     if ($result) {
@@ -417,7 +423,8 @@ class KwDatagrid {
     if (empty($options['choices']) || !is_array($options['choices'])) {
       $options['choices'] = array(5, 10, 20, 30, 50, 100);
     }
-    if (empty($options['display']) || !in_array($options['display'], array('none', 'form', 'advanced'))) {
+    $display_types = array('none', 'form', 'advanced');
+    if (empty($options['display']) || !in_array($options['display'], $display_types)) {
       $options['display'] = 'none';
     }
     if (empty($options['quantity']) || $options['quantity'] <= 0) {
@@ -1072,7 +1079,6 @@ class KwDatagrid {
       foreach ($subqueries as $placeholder => $subquery) {
         $args = $subquery["args"];
         $query = $subquery["query"];
-        $keys = array();
         if (isset($subquery["input"])) {
           $args[':input'] = $subquery['values'];
         }
@@ -1082,6 +1088,7 @@ class KwDatagrid {
           // Clé de stockage pour chaque ligne
           if (is_numeric($subquery['key'])) {
             $sq_i = 0;
+            $sq_key = NULL;
             foreach ($sq_row as $sq_column_value) {
               if ($sq_i == $subquery['key']) {
                 $sq_key = $sq_column_value;
@@ -1113,7 +1120,7 @@ class KwDatagrid {
             elseif (substr_count($sq_row_output, ':' . $sq_column) > 0) {
               $sq_row_output = str_replace(':' . $sq_column, $sq_column_value, $sq_row_output);
             }
-            if (in_array($sq_column, $subquery['export']) && isset($orig_rows[$key])) {
+            if (in_array($sq_column, $subquery['export']) && isset($orig_rows[$sq_key])) {
               $orig_rows[$sq_key]->$sq_column = $sq_column_value;
             }
           }
@@ -1182,47 +1189,47 @@ class KwDatagrid {
         $current_sort = $this->getCurrentSort();
         if ($current_sort != 0) {
           $current_key = array_search(abs($current_sort), $this->sortables["id"]);
+          $supercaption .= "<span class='results'>" . t($this->extraCaption["many_results"], array(
+            "%total_results" => $this->totalResults,
+            "!order" => $current_sort == 0 ? t("default") : "<em>" . $this->sortables["label"][$current_key] . "</em>" . ($current_sort == 0 ? "" : " " . ($current_sort > 0 ? t("ascending") : t("descending"))),
+          ))
+          . "</span>";
         }
-        $supercaption .= "<span class='results'>"
-        . t($this->extraCaption["many_results"], array(
-          "%total_results" => $this->totalResults,
-            "!order" => $current_sort == 0 ? t("default") : "<em>" . $this->sortables["label"][$current_key] . "</em>"
-            . ($current_sort == 0 ? "": " ". ($current_sort > 0 ? t("ascending") : t("descending"))))
-          )
-        . "</span>";
       }
     }
     else {
       if (isset($this->extraCaption["single_result_filtered"]) && $this->totalResults == 1) {
         $supercaption .= "<span class='results'>" .
-          t($this->extraCaption["single_result_filtered"], array("%unfiltered_total" => $this->unfilteredTotalResults)) . "</span>";
+          t($this->extraCaption["single_result_filtered"], array(
+            "%unfiltered_total" => $this->unfilteredTotalResults,
+          )) . "</span>";
       }
       elseif (isset($this->extraCaption["many_results_filtered"]) && $this->totalResults > 1) {
         $current_sort = $this->getCurrentSort();
         if ($current_sort != 0) {
           $current_key = array_search(abs($current_sort), $this->sortables["id"]);
-        }
-        $supercaption .= "<span class='results'>" .
-          t($this->extraCaption["many_results_filtered"], array(
+          $supercaption .= "<span class='results'>" . t($this->extraCaption["many_results_filtered"], array(
             "%total_results" => $this->totalResults,
             "%unfiltered_total" => $this->unfilteredTotalResults,
-            "!order" => $current_sort == 0 ? t("default")
-              : "<em>" . $this->sortables["label"][$current_key] . "</em>"
-              . ($current_sort == 0 ? "": " ". ($current_sort > 0 ? t("ascending") : t("descending")))
+            "!order" => $current_sort == 0 ? t("default") : "<em>" . $this->sortables["label"][$current_key] . "</em>" . ($current_sort == 0 ? "" : " " . ($current_sort > 0 ? t("ascending") : t("descending"))),
           )) . "</span>";
+        }
       }
       if (count($this->appliedFilters) == 1 && isset($this->extraCaption["single_filter"])) {
         $supercaption .= " <span class='filters'>"
-        . t($this->extraCaption["single_filter"],
-            array("!filters" => implode(" ", $this->appliedFilters))) . "</span>";
+        . t($this->extraCaption["single_filter"], array(
+            "!filters" => implode(" ", $this->appliedFilters),
+        )) . "</span>";
       }
       elseif (isset($this->extraCaption["many_filters"])) {
         $supercaption .= " <span class='filters'>"
-        . t($this->extraCaption["many_filters"],
-            array("%nb_filters" => count($this->appliedFilters),
-                "!filters" => implode(" ", $this->appliedFilters))) . "</span>";
+        . t($this->extraCaption["many_filters"], array(
+            "%nb_filters" => count($this->appliedFilters),
+            "!filters" => implode(" ", $this->appliedFilters),
+        )) . "</span>";
       }
       $options['query'] = $this->transmitUrlParameters(TRUE);
+      $options['fragment'] = $this->id;
       $supercaption .= " <span class='reset-filters'>"
         . l(t("(Remove all filters)"), $this->getConstructor('page'), $options)
         . "</span>";
@@ -1295,38 +1302,36 @@ class KwDatagrid {
         }
       }
     }
-    foreach($this->columns as $key => $column) {
+    foreach ($this->columns as $key => $column) {
       if (!$column["itemable"]) {
         unset($prev["rows"][$key]);
         unset($next["rows"][$key]);
       }
     }
     $path = (isset($this->linkedNode)) ? "node/" . $this->linkedNode->nid : $this->getConstructor('page');
+    $array_datagrid_link = array(
+      "fragment" => $this->id,
+      "query" => array("_p" => isset($new_page) ? $new_page : 0),
+      "attributes" => array("class" => array("back", "icon")),
+    );
+    if (empty($this->activeFilters)) {
+      $datagrid_link = l($this->extraCaption["backlink"], $path, $array_datagrid_link);
+    }
+    else {
+      $datagrid_link = l($this->extraCaption["filtered_backlink"], $path, $array_datagrid_link)
+      . " | " . l($this->extraCaption["unfiltered_backlink"], $path, array(
+          "fragment" => $this->id,
+          "query" => array("_r" => 1),
+          "attributes" => array("class" => "back", "icon"),
+      ));
+    }
     $datagrid = array(
       "#theme" => "datagrid_item_navigation",
       "#title" => array(
         "datagrid" => $title,
         "node" => isset($this->linkedNode) ? l($this->linkedNode->title, "node/" . $this->linkedNode->nid) : NULL,
         "custom" => isset($this->modeContext["title"]) ? $this->modeContext["title"] : NULL,
-        "list" => count($this->activeFilters) == 0 ?
-            l($this->extraCaption["backlink"], $path,
-              array(
-                "fragment" => $this->id,
-                "query" => array("_p" => isset($new_page) ? $new_page : 0),
-                "attributes" => array("class" => array("back", "icon")),
-              ))
-            : l($this->extraCaption["filtered_backlink"], "node/" . $path,
-              array(
-                "fragment" => $this->id,
-                "query" => array("_p" => isset($new_page) ? $new_page : 0),
-                "attributes" => array("class" => array("back", "icon")),
-              )) . " | " .
-            l($this->extraCaption["unfiltered_backlink"], "node/" . $path,
-              array(
-                "fragment" => $this->id,
-                "query" => array("_r" => 1),
-                "attributes" => array("class" => "back", "icon"),
-              )),
+        "list" => $datagrid_link,
       ),
       "#next" => $next,
       "#prev" => $prev,
