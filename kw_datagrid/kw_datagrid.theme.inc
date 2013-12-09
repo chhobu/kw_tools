@@ -253,6 +253,7 @@ function theme_datagrid($variables) {
     $attributes['data-refresh'] = $datagrid->getAutoRefresh() * 1000;
     if ($datagrid->isUsingAjax()) {
       $attributes["class"][] = "use-ajax";
+      $attributes["class"][] = "ajax-no-ids";
     }
     $parameters['_op'] = 'refresh';
     $footer_output_part_one .= l(t('Refresh data'), $datagrid->getPath(), array(
@@ -285,6 +286,7 @@ function kw_datagrid_tablesort_header(KwDatagrid $datagrid, $key, $cell, $header
     $columns = $datagrid->getColumns();
     $link_classes = array(
       $datagrid->isUsingAjax() ? 'use-ajax' : 'standard',
+      'ajax-no-ids',
       'sortable',
       'icon',
     );
@@ -578,6 +580,7 @@ function theme_datagrid_pager_link($variables) {
   }
   if ($datagrid->isUsingAjax()) {
     $attributes["class"][] = "use-ajax";
+    $attributes["class"][] = "ajax-no-ids";
   }
   return l($text, $datagrid->getPath(), array(
     'attributes' => $attributes,
@@ -734,6 +737,7 @@ function theme_datagrid_block($variables) {
         'attributes' => array(
           'class' => array(
             $datagrid->isUsingAjax() ? 'use-ajax' : 'standard',
+            'ajax-no-ids',
             'close-button',
           ),
           'rel' => 'nofollow',
@@ -766,6 +770,7 @@ function theme_datagrid_advanced_controls($variables) {
     $classes = array('datagrid-button', 'icon', 'filter');
     if ($datagrid->isUsingAjax()) {
       $classes[] = 'use-ajax';
+      $classes[] = "ajax-no-ids";
     }
     if (is_array($test) && count($test) > 0) {
       $output .= "<div class='datagrid-advanced-control datagrid-filters'>";
@@ -802,6 +807,7 @@ function theme_datagrid_advanced_controls($variables) {
       $classes = array('datagrid-button');
       if ($datagrid->isUsingAjax()) {
         $classes[] = 'use-ajax';
+        $classes[] = "ajax-no-ids";
       }
       if (isset($parameters['_o']) && $parameters['_o'] == 's') {
         $filters_toogle_parameters['_o'] = '';
@@ -820,6 +826,7 @@ function theme_datagrid_advanced_controls($variables) {
           $classes[] = 'datagrid-button';
           if ($datagrid->isUsingAjax()) {
             $classes[] = 'use-ajax';
+            $classes[] = "ajax-no-ids";
           }
           $asc_classes = $desc_classes = $classes;
           $asc_parameters = $desc_parameters = $parameters;
@@ -878,6 +885,7 @@ function theme_datagrid_advanced_controls($variables) {
     $classes = array('datagrid-button', 'icon', 'equalizer');
     if ($datagrid->isUsingAjax()) {
       $classes[] = 'use-ajax';
+      $classes[] = "ajax-no-ids";
     }
     $selected = $datagrid->listSelectedColumns(FALSE);
     if (array_keys($selected) != $datagrid->getDefaultColumns()) {
@@ -899,6 +907,7 @@ function theme_datagrid_advanced_controls($variables) {
         $classes = array('datagrid-button', 'icon');
         if ($datagrid->isUsingAjax()) {
           $classes[] = 'use-ajax';
+          $classes[] = "ajax-no-ids";
         }
         if (isset($selected[$key])) {
           $classes[] = 'activated';
@@ -974,6 +983,7 @@ function theme_datagrid_advanced_controls($variables) {
               'datagrid-button',
               'activated',
               $datagrid->isUsingAjax() ? 'use-ajax' : NULL,
+              'ajax-no-ids'
             ),
           ),
         ));
@@ -993,6 +1003,7 @@ function theme_datagrid_advanced_controls($variables) {
           'rel' => 'nofollow',
           'class' => array(
             'datagrid-button',
+            'ajax-no-ids',
             $datagrid->isUsingAjax() && count($datagrid->getConfigurableBlocks()) == 0 ? 'use-ajax' : NULL,
           ),
         ),
