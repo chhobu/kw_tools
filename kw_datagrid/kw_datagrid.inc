@@ -1533,7 +1533,8 @@ class KwDatagrid {
               $arg = str_replace($match[0], $rpl_clb, $arg);
             }
             if (property_exists($row, $match[1])) {
-              $arg = str_replace($match[0], $row->$match[1], $arg);
+              $var = $match[1];
+              $arg = str_replace($match[0], $row->$var, $arg);
             }
           }
         }
